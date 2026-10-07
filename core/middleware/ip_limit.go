@@ -1,11 +1,18 @@
 package middleware
 
 import (
+	"crypto/md5"
+	"crypto/subtle"
+	"encoding/hex"
 	"net"
+	"os"
+	"path"
 	"strings"
+	"time"
 
 	"github.com/1Panel-dev/1Panel/core/app/api/v2/helper"
 	"github.com/1Panel-dev/1Panel/core/app/repo"
+	"github.com/1Panel-dev/1Panel/core/global"
 	"github.com/1Panel-dev/1Panel/core/utils/common"
 	"github.com/1Panel-dev/1Panel/core/utils/security"
 	"github.com/gin-gonic/gin"
@@ -60,11 +67,35 @@ func isLocalSyncRequest(reqPath, clientIP, token string) bool {
 	}
 
 	switch reqPath {
-	case "/api/v2/core/xpack/sync/ssl":
-		return token != ""
-	case "/api/v2/core/settings/ssl/reload":
-		return token != ""
+	case "/api/v2/core/xpack/sync/ssl", "/api/v2/core/settings/ssl/reload":
+		return isValidLocalToken(token)
 	default:
 		return false
 	}
+}
+
+// isValidLocalToken verifies the daily token the agent derives from the shared
+// secret in <InstallDir>/1panel/tmp/.secret. A non-empty header alone is not
+// enough: behind a reverse proxy on the same host every request is loopback.
+func isValidLocalToken(token string) bool {
+	if len(token) != 16 {
+		return false
+	}
+	data, err := os.ReadFile(path.Join(global.CONF.Base.InstallDir, "1panel/tmp/.secret"))
+	if err != nil {
+		return false
+	}
+	secret := strings.TrimSpace(string(data))
+	if secret == "" {
+		return false
+	}
+	now := time.Now()
+	for _, day := range []time.Time{now, now.Add(-24 * time.Hour)} {
+		h := md5.Sum([]byte(secret + "-" + day.Format("2006-01-02")))
+		expected := hex.EncodeToString(h[:])[:16]
+		if subtle.ConstantTimeCompare([]byte(expected), []byte(token)) == 1 {
+			return true
+		}
+	}
+	return false
 }

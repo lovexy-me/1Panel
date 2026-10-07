@@ -174,11 +174,11 @@ func IsValid1PanelTokenWithVersion(panelToken string, panelTimestamp string, api
 }
 
 func isValidMD5Token(panelToken string, panelTimestamp string, apiKey string) bool {
-	return panelToken == GenerateMD5("1panel"+apiKey+panelTimestamp)
+	return hmac.Equal([]byte(panelToken), []byte(GenerateMD5("1panel"+apiKey+panelTimestamp)))
 }
 
 func isValidHMACSHA256Token(panelToken string, panelTimestamp string, apiKey string) bool {
-	return panelToken == GenerateHMACSHA256(apiKey, "1panel:"+panelTimestamp)
+	return hmac.Equal([]byte(panelToken), []byte(GenerateHMACSHA256(apiKey, "1panel:"+panelTimestamp)))
 }
 
 func IsIPInWhiteList(clientIP string, ipWhiteString string) bool {
