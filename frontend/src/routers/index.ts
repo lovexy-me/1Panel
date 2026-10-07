@@ -3,7 +3,6 @@ import NProgress from '@/config/nprogress';
 import { useGlobalStore } from '@/composables/useGlobalStore';
 import { AxiosCanceler } from '@/api/helper/axios-cancel';
 import { hasRouteAccess } from '@/utils/rbac';
-import { loadProductProFromDB } from '@/utils/xpack';
 import i18n from '@/lang';
 import { MsgError } from '@/utils/message';
 import { TerminalDockSessionStore, TerminalSessionStore } from '@/store';
@@ -11,7 +10,6 @@ import { TerminalDockSessionStore, TerminalSessionStore } from '@/store';
 const axiosCanceler = new AxiosCanceler();
 
 let isRedirecting = false;
-const enterpriseLicenseCheckWhiteList = ['EnterpriseLicenseRequired', 'entrance', 'login', 'Expired'];
 const noLoginWhiteList = ['entrance', 'login', 'file-share', '404', 'Expired'];
 
 const clearLicenseStatus = () => {
@@ -30,8 +28,7 @@ const clearLoginStatus = () => {
 };
 
 router.beforeEach(async (to, from) => {
-    const { entrance, isEnterprise, isEnterpriseLicenseLoaded, isEnterpriseLicensed, isLogin, isOnRestart } =
-        useGlobalStore();
+    const { entrance, isLogin } = useGlobalStore();
     NProgress.start();
     axiosCanceler.removeAllPending();
 
@@ -71,29 +68,6 @@ router.beforeEach(async (to, from) => {
         }
         NProgress.done();
         return { name: '404' };
-    }
-    if (isLogin.value && isEnterprise.value && !enterpriseLicenseCheckWhiteList.includes(String(to.name))) {
-        if (!isEnterpriseLicenseLoaded.value) {
-            await loadProductProFromDB();
-        }
-        if (!isEnterpriseLicensed.value) {
-            NProgress.done();
-            return { name: 'EnterpriseLicenseRequired', query: { code: String(to.params.code || '') } };
-        }
-    }
-    if (to.name === 'EnterpriseLicenseRequired') {
-        if (!isLogin.value) {
-            NProgress.done();
-            return {
-                name: 'entrance',
-                params: to.params,
-            };
-        }
-        if (!isEnterprise.value || (isEnterpriseLicensed.value && !isOnRestart.value)) {
-            NProgress.done();
-            return { name: 'home' };
-        }
-        return true;
     }
 
     if (to.path === '/apps/all' && to.query.install != undefined) {

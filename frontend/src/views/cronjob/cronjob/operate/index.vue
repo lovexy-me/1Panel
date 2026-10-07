@@ -694,12 +694,6 @@
                                         <el-checkbox v-model="form.hasAlert" :label="$t('xpack.alert.isAlert')" />
                                         <span class="input-help">{{ $t('xpack.alert.alertNotificationHelper') }}</span>
 
-                                        <span class="input-help logText" v-if="form.hasAlert && !isProductPro">
-                                            {{ $t('xpack.alert.licenseHelper') }}
-                                            <el-link class="link" @click="toUpload" type="primary">
-                                                {{ $t('license.levelUpPro') }}
-                                            </el-link>
-                                        </span>
                                     </el-form-item>
                                 </LayoutCol>
                             </el-row>
@@ -841,7 +835,6 @@
     <FileList ref="scriptFileRef" @choose="loadScriptDir" />
     <FileList ref="dirRef" @choose="loadDir" />
     <FileList ref="fileRef" @choose="loadFile" />
-    <LicenseImport ref="licenseRef" />
 </template>
 
 <script lang="ts" setup>
@@ -879,7 +872,6 @@ import {
 import { loadUsers } from '@/api/modules/toolbox';
 import { loadContainerUsers } from '@/api/modules/container';
 import { useGlobalStore } from '@/composables/useGlobalStore';
-import LicenseImport from '@/components/license-import/index.vue';
 import { splitTimeFromSecond, transferTimeToSecond } from '@/utils/validate';
 import { getGroupList } from '@/api/modules/group';
 import { routerToName, routerToPath } from '@/utils/router';
@@ -889,7 +881,6 @@ import { cronjobAlertModes, normalizeCronjobAlertMode } from '@/utils/cronjob-al
 const router = useRouter();
 
 const { docsUrl, isFxplay, isProductPro } = useGlobalStore();
-const licenseRef = ref();
 const scriptFileRef = ref();
 const dirRef = ref();
 const fileRef = ref();
@@ -1701,10 +1692,6 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
         MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
         goBack();
     });
-};
-
-const toUpload = () => {
-    licenseRef.value.acceptParams();
 };
 
 onMounted(() => {

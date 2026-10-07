@@ -53,14 +53,6 @@ const buttons = computed<RouterButton[]>(() => {
                   },
               ]
             : []),
-        ...((isOffline.value && !isEnterprise.value) || (isEnterprise.value && !isAdmin.value)
-            ? []
-            : [
-                  {
-                      label: i18n.global.t('setting.license'),
-                      path: isEnterprise.value ? '/enterprise/license' : '/settings/license',
-                  },
-              ]),
         {
             label: i18n.global.t('apiKeyManagement.title'),
             path: '/settings/apikeys',

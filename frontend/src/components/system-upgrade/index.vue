@@ -5,9 +5,6 @@
                 <el-link v-if="isEE" underline="never" type="primary" @click="toEdition">
                     {{ $t('license.ee') }}
                 </el-link>
-                <el-link v-else-if="isMasterPro" underline="never" type="primary" @click="toLxware">
-                    {{ $t('license.pro') }}
-                </el-link>
                 <el-link v-else-if="isOffline" underline="never" type="primary" @click="to1Panel">
                     {{ $t('license.offLine') }}
                 </el-link>
@@ -45,7 +42,7 @@ import { MsgSuccess } from '@/utils/message';
 import { onMounted, ref } from 'vue';
 import { useGlobalStore } from '@/composables/useGlobalStore';
 
-const { isOffline, isMasterPro, isEE, isIntl, isAdmin, hasNewVersion } = useGlobalStore();
+const { isOffline, isEE, isIntl, isAdmin, hasNewVersion } = useGlobalStore();
 const upgradeRef = ref();
 const releasesRef = ref();
 
@@ -66,13 +63,6 @@ const getVersionLog = () => {
     releasesRef.value.acceptParams();
 };
 
-const toLxware = () => {
-    if (!isIntl.value) {
-        window.open('https://www.lxware.cn/1panel' + '', '_blank', 'noopener,noreferrer');
-    } else {
-        window.open('https://1panel.pro/pricing' + '', '_blank', 'noopener,noreferrer');
-    }
-};
 
 const to1Panel = () => {
     let url = isIntl.value ? 'https://1panel.pro' : 'https://1panel.cn';

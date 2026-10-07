@@ -133,16 +133,6 @@
                             <span class="input-help">{{ $t('xpack.alert.clamHelper') }}</span>
                         </el-form-item>
                         <el-form-item
-                            v-if="(dialogData.rowData!.hasAlert || dialogData.rowData!.hasSpec) && !isProductPro"
-                        >
-                            <span class="input-help logText">
-                                {{ $t('toolbox.clam.alertHelper') }}
-                                <el-link class="link" type="primary" @click="toUpload">
-                                    {{ $t('license.levelUpPro') }}
-                                </el-link>
-                            </span>
-                        </el-form-item>
-                        <el-form-item
                             :label="$t('xpack.alert.alertMethod')"
                             v-if="dialogData.rowData!.hasAlert"
                             prop="alertMethodItems"
@@ -222,7 +212,6 @@
                 </el-button>
             </span>
         </template>
-        <LicenseImport ref="licenseRef" />
     </DrawerPro>
     <FileList ref="scanDirRef" @choose="loadDir" />
     <FileList ref="infectedDirRef" @choose="loadInfectedDir" />
@@ -234,7 +223,6 @@ import { Rules } from '@/global/form-rules';
 import FileList from '@/components/file-list/index.vue';
 import i18n from '@/lang';
 import { ElForm } from 'element-plus';
-import LicenseImport from '@/components/license-import/index.vue';
 import { MsgError, MsgSuccess } from '@/utils/message';
 import { Toolbox } from '@/api/interface/toolbox';
 import { createClam, updateClam } from '@/api/modules/toolbox';
@@ -338,7 +326,6 @@ const getAlertConfigOptionLabel = (c: Alert.AlertConfigInfo): string => {
     }
 };
 
-const licenseRef = ref();
 const scanDirRef = ref();
 const infectedDirRef = ref();
 interface DialogProps {
@@ -516,10 +503,6 @@ const hasDay = (item: any) => {
 };
 const hasHour = (item: any) => {
     return item.specType !== 'perHour' && item.specType !== 'perNMinute' && item.specType !== 'perNSecond';
-};
-
-const toUpload = () => {
-    licenseRef.value.acceptParams();
 };
 
 const changeSpecType = () => {

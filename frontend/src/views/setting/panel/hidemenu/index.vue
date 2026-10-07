@@ -100,7 +100,7 @@ const form = reactive({
 const acceptParams = (params: DialogProps): void => {
     drawerVisible.value = true;
     form.menuAccordion = params.menuAccordion || 'Disable';
-    let hideMenu = JSON.parse(params.hideMenu);
+    let hideMenu = JSON.parse(params.hideMenu).filter((item: any) => item.label !== 'Xpack-Menu');
     sortMenu(hideMenu);
     treeData.hideMenu = hideMenu;
 };
