@@ -1,0 +1,31 @@
+name: Build 1Panel
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: core/go.mod
+      - name: Frontend
+        run: cd frontend && npm ci && npm run build:pro
+      - name: Binaries
+        run: |
+          mkdir -p dist
+          for arch in amd64 arm64; do
+            (cd core && CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags '-s -w' -o ../build/$arch/1panel-core ./cmd/server/main.go)
+            (cd agent && CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags '-s -w' -o ../build/$arch/1panel-agent ./cmd/server/main.go)
+            tar -czf dist/1panel-linux-$arch.tar.gz -C build/$arch .
+          done
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: community-${{ github.run_number }}
+          name: 1Panel community build ${{ github.run_number }}
+          files: dist/*.tar.gz
