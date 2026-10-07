@@ -1,50 +1,6 @@
 name: Build 1Panel
 on:
   workflow_dispatch:
-permissions:
-  contents: write
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: core/go.mod
-      - name: Frontend
-        run: cd frontend && npm ci && npm run build:pro
-      - name: Binaries
-        run: |
-          mkdir -p dist
-          for arch in amd64 arm64; do
-            (cd core && CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags '-s -w' -o ../build/$arch/1panel-core ./cmd/server/main.go)
-            (cd agent && CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags '-s -w' -o ../build/$arch/1panel-agent ./cmd/server/main.go)
-            tar -czf dist/1panel-linux-$arch.tar.gz -C build/$arch .
-          done
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: community-${{ github.run_number }}
-          name: 1Panel community build ${{ github.run_number }}
-          files: dist/*.tar.gz
-```
-
-→ **Commit changes**。
-
-### ③ 运行
-**Actions** → 如果提示启用工作流就点启用 → **Build 1Panel** → **Run workflow**。大约 10–15 分钟后，压缩包会出现在 fork 的 **Releases** 里。
-
-失败了把 Actions 里红色那一步告诉我就行。
-我
-23:21
-打开 fork 里的 `.github/workflows/build-1panel.yml` → 铅笔图标 → **全选删除**，粘贴下面全部内容 → **Commit changes**：
-
-```yaml
-name: Build 1Panel
-on:
-  workflow_dispatch:
     inputs:
       patch_url:
         description: 'Patch URL (optional)'
