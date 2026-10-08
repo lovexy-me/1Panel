@@ -85,4 +85,5 @@ var (
 	alertService     = service.NewIAlertService()
 
 	diskService = service.NewIDiskService()
+	wafService  = service.NewIWafService()
 )

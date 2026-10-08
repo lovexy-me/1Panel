@@ -54,6 +54,16 @@ const webSiteRouter = {
             },
         },
         {
+            path: '/websites/waf',
+            name: 'WebsiteWAF',
+            component: () => import('@/views/website/waf/index.vue'),
+            meta: {
+                icon: 'p-ssl-menu',
+                title: 'menu.waf',
+                permission: 'website_view',
+            },
+        },
+        {
             path: '/websites/runtimes/php',
             name: 'PHP',
             component: () => import('@/views/website/runtime/php/index.vue'),

@@ -1392,3 +1392,18 @@ var UpdateFirewallMenuPath = &gormigrate.Migration{
 		})
 	},
 }
+
+var AddCommunityWafMenu = &gormigrate.Migration{
+	ID: "20261008-add-community-waf-menu",
+	Migrate: func(tx *gorm.DB) error {
+		return helper.UpsertChildMenuByLabel(tx, "Website-Menu", dto.ShowMenu{
+			ID:       "35",
+			Disabled: false,
+			Title:    "menu.waf",
+			IsShow:   true,
+			Label:    "WebsiteWAF",
+			Path:     "/websites/waf",
+			Sort:     270,
+		}, "WebsiteTemplate")
+	},
+}

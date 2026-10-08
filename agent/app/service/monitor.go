@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/1Panel-dev/1Panel/agent/app/repo"
@@ -443,6 +444,8 @@ func (m *MonitorService) CleanData(monitorType string) error {
 	}
 }
 
+var monitorLastCleanup atomic.Int64
+
 func (m *MonitorService) Run() {
 	if m.ctx.Err() != nil {
 		return
@@ -452,7 +455,7 @@ func (m *MonitorService) Run() {
 	if len(totalPercent) == 1 {
 		itemModel.Cpu = totalPercent[0]
 	}
-	topCPU := loadTopCPU()
+	topCPU, topMem := loadTopProcesses(true, true)
 	if len(topCPU) != 0 {
 		topItemCPU, err := json.Marshal(topCPU)
 		if err == nil {
@@ -468,7 +471,6 @@ func (m *MonitorService) Run() {
 
 	memoryInfo, _ := mem.VirtualMemory()
 	itemModel.Memory = memoryInfo.UsedPercent
-	topMem := loadTopMem()
 	if len(topMem) != 0 {
 		topMemItem, err := json.Marshal(topMem)
 		if err == nil {
@@ -483,10 +485,16 @@ func (m *MonitorService) Run() {
 	m.loadDiskIO()
 	m.loadNetIO()
 
+	// Retention cleanup scans and rewrites the monitor tables; once an hour is
+	// plenty, instead of on every sample.
+	if last := monitorLastCleanup.Load(); last != 0 && time.Since(time.Unix(last, 0)) < time.Hour {
+		return
+	}
 	MonitorStoreDays, err := settingRepo.Get(settingRepo.WithByKey("MonitorStoreDays"))
 	if err != nil {
 		return
 	}
+	monitorLastCleanup.Store(time.Now().Unix())
 	storeDays, _ := strconv.Atoi(MonitorStoreDays.Value)
 	timeForDelete := time.Now().AddDate(0, 0, -storeDays)
 	_ = monitorRepo.DelMonitorBase(timeForDelete)
@@ -619,106 +627,105 @@ func (m *MonitorService) saveNetDataToDB(ctx context.Context, interval float64) 
 	}
 }
 
-func loadTopCPU() []dto.Process {
+type processSample struct {
+	proc   *process.Process
+	cpu    float64
+	rss    uint64
+	cpuErr bool
+	memErr bool
+}
+
+// pushTop keeps the n largest samples by key in a small slice. n is tiny
+// (5), so a linear scan beats a heap.
+func pushTop(top []processSample, item processSample, n int, key func(processSample) float64) []processSample {
+	if len(top) < n {
+		return append(top, item)
+	}
+	minIndex := 0
+	for i := 1; i < len(top); i++ {
+		if key(top[i]) < key(top[minIndex]) {
+			minIndex = i
+		}
+	}
+	if key(item) > key(top[minIndex]) {
+		top[minIndex] = item
+	}
+	return top
+}
+
+func describeProcess(p *process.Process) (name, cmd, user string) {
+	var err error
+	if name, err = p.Name(); err != nil {
+		name = "undefined"
+	}
+	if cmd, err = p.Cmdline(); err != nil {
+		cmd = "undefined"
+	}
+	if user, err = p.Username(); err != nil {
+		user = "undefined"
+	}
+	return
+}
+
+// loadTopProcesses enumerates processes once and reads only CPU time and RSS
+// for each; name, command line and owner are read for the final winners only.
+// Before this, the monitor walked /proc twice and read cmdline and owner for
+// every process that briefly entered a top-5 list.
+func loadTopProcesses(wantCPU, wantMem bool) (topCPU []dto.Process, topMem []dto.Process) {
 	processes, err := process.Processes()
 	if err != nil {
-		return nil
+		return nil, nil
 	}
-
-	top5 := make([]dto.Process, 0, 5)
+	const n = 5
+	cpuTop := make([]processSample, 0, n)
+	memTop := make([]processSample, 0, n)
 	for _, p := range processes {
-		percent, err := p.CPUPercent()
-		if err != nil {
-			continue
-		}
-		minIndex := 0
-		if len(top5) >= 5 {
-			minCPU := top5[0].Percent
-			for i := 1; i < len(top5); i++ {
-				if top5[i].Percent < minCPU {
-					minCPU = top5[i].Percent
-					minIndex = i
-				}
-			}
-			if percent < minCPU {
-				continue
+		if wantCPU {
+			if percent, err := p.CPUPercent(); err == nil {
+				cpuTop = pushTop(cpuTop, processSample{proc: p, cpu: percent}, n, func(s processSample) float64 { return s.cpu })
 			}
 		}
-		name, err := p.Name()
-		if err != nil {
-			name = "undefined"
-		}
-		cmd, err := p.Cmdline()
-		if err != nil {
-			cmd = "undefined"
-		}
-		user, err := p.Username()
-		if err != nil {
-			user = "undefined"
-		}
-		if len(top5) == 5 {
-			top5[minIndex] = dto.Process{Percent: percent, Pid: p.Pid, User: user, Name: name, Cmd: cmd}
-		} else {
-			top5 = append(top5, dto.Process{Percent: percent, Pid: p.Pid, User: user, Name: name, Cmd: cmd})
+		if wantMem {
+			if stat, err := p.MemoryInfo(); err == nil && stat != nil {
+				memTop = pushTop(memTop, processSample{proc: p, rss: stat.RSS}, n, func(s processSample) float64 { return float64(s.rss) })
+			}
 		}
 	}
-	sort.Slice(top5, func(i, j int) bool {
-		return top5[i].Percent > top5[j].Percent
-	})
+	if wantCPU {
+		topCPU = make([]dto.Process, 0, len(cpuTop))
+		for _, s := range cpuTop {
+			name, cmd, user := describeProcess(s.proc)
+			topCPU = append(topCPU, dto.Process{Percent: s.cpu, Pid: s.proc.Pid, User: user, Name: name, Cmd: cmd})
+		}
+		sort.Slice(topCPU, func(i, j int) bool { return topCPU[i].Percent > topCPU[j].Percent })
+	}
+	if wantMem {
+		var total uint64
+		if vm, err := mem.VirtualMemory(); err == nil {
+			total = vm.Total
+		}
+		topMem = make([]dto.Process, 0, len(memTop))
+		for _, s := range memTop {
+			name, cmd, user := describeProcess(s.proc)
+			percent := 0.0
+			if total > 0 {
+				percent = float64(s.rss) / float64(total) * 100
+			}
+			topMem = append(topMem, dto.Process{Percent: percent, Pid: s.proc.Pid, User: user, Name: name, Cmd: cmd, Memory: s.rss})
+		}
+		sort.Slice(topMem, func(i, j int) bool { return topMem[i].Memory > topMem[j].Memory })
+	}
+	return topCPU, topMem
+}
 
-	return top5
+func loadTopCPU() []dto.Process {
+	top, _ := loadTopProcesses(true, false)
+	return top
 }
 
 func loadTopMem() []dto.Process {
-	processes, err := process.Processes()
-	if err != nil {
-		return nil
-	}
-
-	top5 := make([]dto.Process, 0, 5)
-	for _, p := range processes {
-		stat, err := p.MemoryInfo()
-		if err != nil {
-			continue
-		}
-		memItem := stat.RSS
-		minIndex := 0
-		if len(top5) >= 5 {
-			min := top5[0].Memory
-			for i := 1; i < len(top5); i++ {
-				if top5[i].Memory < min {
-					min = top5[i].Memory
-					minIndex = i
-				}
-			}
-			if memItem < min {
-				continue
-			}
-		}
-		name, err := p.Name()
-		if err != nil {
-			name = "undefined"
-		}
-		cmd, err := p.Cmdline()
-		if err != nil {
-			cmd = "undefined"
-		}
-		user, err := p.Username()
-		if err != nil {
-			user = "undefined"
-		}
-		percent, _ := p.MemoryPercent()
-		if len(top5) == 5 {
-			top5[minIndex] = dto.Process{Percent: float64(percent), Pid: p.Pid, User: user, Name: name, Cmd: cmd, Memory: memItem}
-		} else {
-			top5 = append(top5, dto.Process{Percent: float64(percent), Pid: p.Pid, User: user, Name: name, Cmd: cmd, Memory: memItem})
-		}
-	}
-
-	sort.Slice(top5, func(i, j int) bool {
-		return top5[i].Memory > top5[j].Memory
-	})
-	return top5
+	_, top := loadTopProcesses(false, true)
+	return top
 }
 
 func StartMonitor(removeBefore bool, interval string) error {
