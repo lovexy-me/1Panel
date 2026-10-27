@@ -157,7 +157,8 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref, computed } from 'vue';
+import { useSearchState } from '@/utils/search-reset';
+import { toRef, reactive, ref, computed } from 'vue';
 import { dateFormat } from '@/utils/date';
 import { newUUID } from '@/utils/id';
 import { computeSize2 } from '@/utils/size';
@@ -191,14 +192,22 @@ const data = ref();
 const names = ref();
 const repos = ref();
 const paginationConfig = reactive({
-    cacheSizeKey: 'container-image-page-size',
     currentPage: 1,
-    pageSize: Number(localStorage.getItem('container-image-page-size')) || 20,
+    pageSize: 20,
     total: 0,
     name: '',
     orderBy: 'createdAt',
     order: 'null',
 });
+useSearchState(
+    'container/image/index',
+    {
+        search: toRef(paginationConfig, 'name'),
+        page: toRef(paginationConfig, 'currentPage'),
+        pageSize: toRef(paginationConfig, 'pageSize'),
+    },
+    { onRevisit: () => search() },
+);
 const columns = ref([]);
 
 const isActive = ref(false);

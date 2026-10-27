@@ -542,6 +542,7 @@ const message = {
         recommend: 'Recommended',
         dir: 'Directory',
         alias: 'Alias',
+        quickDirDelete: 'Delete ({0})?',
         quickDir: 'Quick Access',
         minQuickJump: 'Add at least one quick access entry',
         maxQuickJump: 'You can add up to four quick access entries',
@@ -618,6 +619,8 @@ const message = {
         cancelKeepAlive: 'Stop keeping page session',
     },
     header: {
+        userCenter: 'User Center',
+        exitSystem: 'Log Out',
         logout: 'Logout',
     },
     database: {
@@ -819,6 +822,15 @@ const message = {
     },
     aiTools: {
         agents: {
+            deepSeekAccessHostHelper:
+                "Enter the IPv4 address or hostname used in your browser, without a scheme, port or path. HTTPS uses the application's local certificate.",
+            deepSeekAuthHelper:
+                'Username: letters, numbers, dot, underscore or hyphen. Password: at least 12 characters, without leading/trailing spaces or line breaks.',
+            octopAuthHelper:
+                'Password: at least 8 characters with letters and digits; avoid common passwords. If rejected during initialization, check the application logs for setup instructions.',
+            initialCredentials: "Initial credentials; use the application's current password if changed.",
+            nativeAgentAccessUnavailable:
+                'The existing installation has no compatible HTTPS access address or port. Check its application settings.',
             agent: 'Agent',
             account: 'Model Account',
             batchOperation: 'Batch Operation',
@@ -1113,6 +1125,13 @@ const message = {
             whiteListHelper: 'Restrict access to only IPs in the whitelist',
         },
         aiProxy: {
+            deploymentNoticeTitle: 'AI Gateway supports standalone deployment',
+            deploymentNoticeDescription:
+                'AI Gateway now supports standalone deployment. The built-in AI Gateway in 1Panel will no longer receive updates. We recommend installing the standalone version from the App Store. You can also continue using the current version.',
+            deploymentNoticeContinue: 'Understood, continue using',
+            deploymentNoticeAppStore: 'Go to App Store',
+            deploymentNoticeNoAppPermission:
+                'You do not have access to the App Store. Contact your administrator to install the standalone version.',
             title: 'AI Gateway',
             apiReference: 'API Reference',
             notInstalled: 'Not installed',
@@ -1522,16 +1541,13 @@ const message = {
             statusWaiting: 'Waiting',
             base: 'Basic Information',
             backend: 'Backend',
-            baseUrl: 'Base URL',
             endpoint: 'Endpoint',
             tokenizer: 'Tokenizer',
-            tokenizerPlaceholder:
-                'Select or enter a local tokenizer directory, e.g. /opt/1panel/tokenizers/DeepSeek-V3',
+            tokenizerPlaceholder: 'Enter an absolute directory on the main node or a Hugging Face repository ID',
             runConfig: 'Run Config',
             rawResult: 'Raw Result',
             resultMetrics: 'Result Metrics',
             contextTokens: 'Context Length',
-            contextTokensHelper: 'Input token limit plus output token limit for this benchmark.',
             outputThroughput: 'Output Throughput',
             outputThroughputHelper: 'Generated output tokens per second. Higher means faster generation.',
             totalThroughput: 'Total Throughput',
@@ -1539,23 +1555,48 @@ const message = {
             firstTokenLatency: 'First Token Latency',
             firstTokenLatencyHelper:
                 'Time from sending the request to receiving the first token. Lower means faster response.',
-            tokenValueHelper: 'Enter a positive integer or k value, e.g. 512, 1k, 32k',
             numPrompts: 'Prompts',
             concurrency: 'Concurrency',
             requestRate: 'Request Rate',
             requestRateUnlimited: 'Unlimited (max throughput)',
-            requestRateCustom: 'Custom QPS',
             requestRateCustomPlaceholder: 'Requests per second, e.g. 2.5',
             successfulRequests: 'Successful Requests',
             requestThroughput: 'Request Throughput',
             mean: 'Mean',
             median: 'Median',
-            timeout: 'Timeout (seconds)',
             image: 'vLLM Image',
-            ignoreEos: 'Ignore EOS',
+            ignoreEos: 'Ignore end-of-sequence token (EOS)',
+            ignoreEosHelp:
+                'Prevents early stopping at EOS to help test the configured output length. Other stop conditions still apply; server support is required.',
             extraHeaders: 'Extra Headers',
         },
         vllmMonitor: {
+            concurrency: 'Current concurrency',
+            sampleMoment: 'At sampling time',
+            sampleWindow: 'Sample interval',
+            requestUnit: 'requests',
+            processing: 'Processing',
+            queued: 'Queued',
+            requestTiming: 'Request timing',
+            completedRequests: 'Requests completed in interval',
+            tokensPerSecond: 'tokens/s',
+            requestsPerSecond: 'Requests/s',
+            finishReasonLabels: {
+                stop: 'Normal completion',
+                length: 'Length limit reached',
+                abort: 'Aborted',
+                error: 'Error',
+                repetition: 'Repetition',
+            },
+            requestAnalysis: 'Request analysis',
+            promptDistribution: 'Prompt token length distribution',
+            generationDistribution: 'Generation token length distribution',
+            finishReasons: 'Request finish reasons',
+            queueTime: 'Mean queue time',
+            averageGenerationTokens: 'Mean output tokens per request',
+            prefixCacheHitRate: 'Prefix cache hit rate',
+            distributionHelper:
+                'Length distributions show request rates and are unaffected by the average/peak selection.',
             cleanHelper:
                 'Clear monitoring history only for this vLLM instance? Other instances, host and GPU monitoring are unaffected.',
             overview: 'Overview',
@@ -1740,6 +1781,155 @@ const message = {
             modelType: 'Model type',
         },
     },
+    benchmarkPlan: {
+        prepareTimeoutHelp: 'Preparation time limit, excluded from the overall timeout.',
+        pointTimeoutHelp:
+            'Separate timer per point, including startup, warmups and all requests; capped by the remaining overall time.',
+        totalTimeoutHelp: 'Starts after preparation, covers all points and intervals, and stops the test on timeout.',
+        concurrencyLevels: 'Concurrency levels',
+        concurrencyHelp:
+            'Levels run sequentially. Each value limits the number of requests in progress at the same time.',
+        requestCountMode: 'Request count',
+        fixedRequestMode: 'Fixed requests per level',
+        scaledRequestMode: 'Calculate from concurrency',
+        requestsPerPoint: 'Requests per level',
+        requestCountFormula:
+            'Per level: fixed value, or max(concurrency × multiplier, minimum requests). Scenario total: sum across levels × trials, excluding warmups.',
+        controlLog: 'Preparation and control log',
+        executionLog: 'Execution log',
+        pointLog: 'Point #{0} · {1} · Execution log',
+        archivedLog: '{0} (archive {1})',
+        tokenLengths: 'Input / output tokens',
+        kind: 'Result category',
+        kindServe: 'serve (regular tests)',
+        kindPD: 'pd (Prefill/Decode probes)',
+        saveDetailed: 'Save request details',
+        saveDetailedHelp:
+            'Save per-request lengths, latencies, generated text and errors. Summary metrics remain available when disabled, reducing result file size.',
+        parameters: 'Parameters',
+        temperatureHelp:
+            'Controls output randomness. Zero usually gives more stable output; higher values increase randomness.',
+        pointTimeout: 'Per-point timeout (seconds)',
+        temperature: 'Sampling temperature',
+        requestUrl: 'API URL',
+        invalidRequestUrl:
+            'Enter a full HTTP(S) URL ending in /chat/completions or /completions, without credentials, query parameters, or fragments.',
+        requestRateHelp:
+            'Applies only to this scenario. Unlimited rate still respects concurrency limits; fractional QPS is supported.',
+        tokenizerModeHelp:
+            'Available modes depend on the vLLM version in the benchmark image. Tokenizer loading is checked during task preparation.',
+        invalidBaseUrl: 'Enter a valid HTTP(S) URL without credentials, query parameters or fragments.',
+        invalidEndpoint:
+            'Enter an endpoint path matching the selected protocol and ending in {0}, without query parameters or fragments.',
+        invalidTokenizer:
+            'Use an absolute directory or repository ID; relative paths, commas and line breaks are not supported.',
+        invalidRequestRate: 'Select unlimited or enter a finite number greater than 0; decimals are supported.',
+        invalidCaCert: 'Enter an absolute CA certificate file path on the primary node, without commas or line breaks.',
+        bodyOverride: 'Extra body cannot override {0}.',
+        invalidBody: 'Enter a valid JSON object.',
+        invalidConcurrencies: 'Provide 1–100 concurrency values, each an integer between 1 and 100000.',
+        emptyRequestCount: 'When calculating from concurrency, multiplier and minimum requests cannot both be 0.',
+        requestCountLimit: 'Calculated requests per point must not exceed 1000000.',
+        contextExceeded: 'Input tokens, output tokens and template reserve exceed the context limit.',
+        planLimit: 'Provide 1–100 scenarios with no more than 2000 expanded points.',
+
+        caCertHelp:
+            'Select a CA certificate file on the primary server to verify HTTPS services. Leave empty to use system certificates.',
+        extraBody: 'Extra request body',
+        entryKey: 'Parameter name',
+        entryValue: 'Parameter value',
+        tokenizerMode: 'Tokenizer mode',
+        requireIdle: 'Check service idle before starting',
+        requireIdleHelp:
+            'Checks /metrics once before warmup and load testing. Stops if the service is busy or its idle state cannot be verified. This does not prevent other traffic during the test.',
+        trustRemoteCode: 'Trust remote code',
+        trustRemoteCodeHelp:
+            'Allows custom tokenizer code from the model repository to run inside the benchmark container. Enable only when required and the source is trusted.',
+        tokenizerModes: { auto: 'Auto (recommended)', slow: 'Slow tokenizer', mistral: 'Mistral tokenizer' },
+        quickDescription: 'Verify connectivity and measurement with a single request.',
+        regularDescription: 'Short, medium and long workloads for routine performance testing.',
+        fullDescription:
+            'Multiple scenarios, concurrency levels and repeated runs, including long inputs and shared prefixes.',
+        customDescription: 'Start with one scenario, set its parameters and add more as needed.',
+        scenarios: 'Scenarios',
+        builtIn: 'Built-in',
+        builtInHelp: 'Built-in schemes cannot be edited or deleted. Adjust a copy when creating a test.',
+        modified: 'Modified',
+
+        imageExists: 'Available locally',
+        imageNeedsPull: 'Pull required',
+        remark: 'Remarks',
+        source: 'Local service',
+        mode: 'Test plan',
+        quick: 'Quick check',
+        regular: 'Regular',
+        full: 'Full',
+        custom: 'Custom',
+        addScenario: 'Add scenario',
+        advanced: 'Advanced settings',
+        points: 'Points',
+        warmups: 'Warmup requests',
+        fixedRequests: 'Fixed requests',
+        multiplier: 'Requests per concurrency',
+        minRequests: 'Minimum requests',
+        trials: 'Trials',
+        prefixRatio: 'Shared prefix ratio',
+        totalTimeout: 'Round timeout (s)',
+        prepareTimeout: 'Preparation timeout (s)',
+        interval: 'Point interval (s)',
+        context: 'Context limit (0: unknown)',
+        reserve: 'Template token reserve',
+        storage: 'Storage limit (MiB)',
+        stopOnError: 'Stop subsequent points on error',
+        caCert: 'CA certificate path',
+        validTrials: 'Valid / total trials',
+        retry: 'Retry selected points',
+        environment: 'Environment',
+        plan: 'Frozen configuration',
+        clientHelp:
+            'The client container runs on the main node and sends requests to an existing service. It does not start inference or require a GPU.',
+        retryHelp: 'Only selected abnormal points are retried, with the same parameters and new seeds.',
+        secretHelp: 'API keys and headers are excluded from copies. Enter them again if needed.',
+        resultHelp:
+            'Only successful runs without request anomalies enter the median and min/max summaries. P99 is the median of per-run P99 values. Cache and external traffic are uncontrolled.',
+    },
+    benchmarkOverview: {
+        noResults: 'No valid test results. Check the failure reason and logs.',
+        noGroupResults: 'No valid results for this combination. Select another scenario or concurrency.',
+        partial: 'Partial results: the test did not fully succeed. Metrics cover valid points only.',
+        highlights: 'Key metrics',
+        aggregate: 'Median across valid runs in this combination. Click a metric for details.',
+        trend: 'Concurrency trend',
+        std: 'Std. deviation',
+        min: 'Minimum',
+        max: 'Maximum',
+        tpot: 'Time per output token',
+        tpotHelp: 'Average generation time per output token after the first token.',
+        itl: 'Inter-token latency',
+        itlHelp: 'Time between consecutive tokens in a streaming response.',
+        e2el: 'End-to-end latency',
+        e2elHelp: 'Time from sending the request to receiving the complete response.',
+        requestHelp: 'Number of requests completed per second.',
+        usageHelp:
+            'Medians of valid runs in this combination, not request totals for the entire test. See the Points tab for abnormal runs.',
+        duration: 'Run duration',
+        throughput: 'Throughput',
+        latency: 'Latency',
+        usage: 'Requests and usage (valid runs)',
+    },
+    benchmarkTokenizer: {
+        title: 'Tokenizer management',
+        local: 'Register local directory',
+        upload: 'Upload tokenizer package',
+        uploadHelp:
+            'Upload a ZIP / tar.gz containing tokenizer files without model weights. Maximum: 128 MiB compressed, 256 MiB extracted.',
+        source: 'Import method',
+        deleteLocal: 'Remove the registration for tokenizer “{0}”? The original directory and files will be kept.',
+        deleteUpload: 'Delete tokenizer “{0}” and its uploaded files? Historical test reports will be kept.',
+        select: 'Select a tokenizer',
+        selectHelp:
+            'For offline testing, select a managed tokenizer. Custom input still accepts a local directory or repository name.',
+    },
     container: {
         createByCommand: 'Create by command',
         importContainerBackupTip: 'Import container backup file, only .tar.gz is supported',
@@ -1917,6 +2107,11 @@ const message = {
         imageName: 'Image name',
         pull: 'Pull',
         path: 'Path',
+        imageUploadDrop: 'Drop an image file here, or click to upload',
+        imageUploadHelper:
+            'Any file format is allowed. Docker validates the contents. Uploaded files are retained for retrying imports or manual deletion.',
+        imageUploadEmpty: 'The file is empty. Select a valid image archive.',
+        imageImportSubmitted: 'Image import task submitted. Check the task log for the result.',
         importImage: 'Import',
         buildArgs: 'Build Arguments',
         imageBuild: 'Build',
@@ -2936,6 +3131,9 @@ const message = {
         privateKey: 'Private Key',
         publicKey: 'Public Key',
         password: 'Password',
+        existingPassPhrase: 'Existing private key passphrase',
+        existingPassPhraseHelper:
+            'Enter the original passphrase if the private key is encrypted; otherwise leave blank. This does not change the passphrase.',
         createMode: 'Creation Method',
         generate: 'Auto-generate',
         unSyncPass: 'Key password cannot be synchronized',
@@ -2975,6 +3173,20 @@ const message = {
         remote: 'Remote SSH',
     },
     setting: {
+        panelCache: {
+            title: 'Cache settings',
+            tabs: 'Tab cache',
+            pagination: 'Pagination cache',
+            refresh: 'Refresh interval cache',
+            search: 'Search input cache',
+            duration: 'Cache duration',
+            '24h': '24h',
+            week: 'One week',
+            month: 'One month',
+            forever: 'Forever',
+            helper: 'Expires after the last state change. Expired values return to page defaults.',
+        },
+
         panel: 'Panel',
         user: 'Panel user',
         userChange: 'Change panel user',
@@ -3697,6 +3909,7 @@ const message = {
         link: 'Link',
         showCurrentArch: 'Architecture',
         syncLocalApp: 'Sync Local App',
+        localAppSyncToNodes: 'Include child nodes when syncing local apps',
         memoryRequiredHelper: 'Current application memory requirement {0}',
         gpuConfig: 'Enable GPU Support',
         gpuConfigHelper:
@@ -4211,6 +4424,9 @@ const message = {
             'Enabling this can avoid certificate leakage, setting a default website will invalidate this setting',
     },
     ssl: {
+        deleteConfirm:
+            'The following certificates will be deleted. ACME certificates will be automatically revoked. Continue?',
+        deleteAndRevoke: 'Delete and revoke',
         create: 'Request',
         provider: 'Type',
         manualCreate: 'Created manually',
@@ -4254,7 +4470,7 @@ const message = {
         pushDir: 'Push the certificate to the local directory',
         dir: 'Directory',
         pushDirHelper:
-            'Certificate file "fullchain.pem" and key file "privkey.pem" will be generated in this directory.',
+            'Select multiple directories or enter one directory per line. Each directory will receive "fullchain.pem" and "privkey.pem".',
         organizationDetail: 'Organization details',
         fromWebsite: 'From website',
         dnsMauanlHelper:
@@ -4295,45 +4511,46 @@ const message = {
         useEAB: 'Use EAB authentication',
     },
     firewall: {
+        ipv6Support: 'IPv6 support',
+        ipv6SupportHelper:
+            'Controls the management and enforcement of IPv6 firewall rules without affecting IPv6 networking on the server.',
+        ipv6DisableContainerHelper: 'Hide IPv6 port information for containers.',
+        ipv6DisableWhitelistHelper: 'Remove IPv6 rules from the allowlist and retain all other existing IPv6 rules.',
+        ipv6DisableRulesHelper: 'Disable IPv6 rules managed by 1Panel in iptables and nftables.',
+        ipv6DisableNetworkHelper: 'This does not disable IPv6 networking on the server.',
+        ipv6DisableEffectHelper:
+            'The affected IPv6 access restrictions and port forwarding will no longer take effect.',
+        ipv6Disabled: 'IPv6 support is disabled. Enable it in firewall settings first.',
+        familyRepair: 'Repair',
+        familyIncomplete: '{0} chains are incomplete',
+        resetWithBackup: 'Back up rules and reset',
+        resetOnly: 'Reset only',
+        resetWithBackupHelper:
+            'Save the current module rules as JSON for restoration during initialization or startup.',
+        resetOnlyHelper: 'Clear current rules without creating a new backup. Existing backups are kept.',
+        backupDirectoryHelper: 'Valid rule backups in {0} are listed below. The newest file is selected by default.',
+        startOnly: 'Start only',
+        startAndRestore: 'Start and restore from backup',
+        startWithBackupHelper:
+            'Start the firewall normally, or choose an existing JSON backup to start and restore rules.',
+        restoreAllRules: 'Initialize and restore rules',
+        importRuleBackup: 'Import from backup',
+        initializeOnly: 'Initialize only',
+        backupRuleCount: 'Rule count',
+        noRuleBackup: 'No restorable rule backups found',
+        ruleBackupLoadFailed: 'Failed to load rule backups. Retry or choose initialization without restoring a backup.',
         create: 'Create rule',
         edit: 'Edit rule',
         quickJump: 'Quick access',
         used: 'Used',
         unUsed: 'Unused',
-        managed: 'Panel-created',
-        managedHelper: 'Created and managed by 1Panel.',
-        adopted: 'Externally managed',
-        adoptedHelper: 'An existing system rule now managed by 1Panel.',
-        external: 'External rule',
-        externalHelper: 'Not managed by 1Panel.',
-        protected: 'System-protected',
-        protectedHelper: 'Built-in rules and rules that exactly match the whitelist cannot be edited or deleted.',
-        stateShort: {
-            managed: 'Panel-created',
-            adopted: 'Externally managed',
-            external: 'External rule',
-            protected: 'System-protected',
-            drifted: 'Abnormal',
-        },
+        whitelist: 'Whitelist',
+        builtinRuleProtected: 'Built-in system protection rule. It cannot be edited or deleted.',
+        whitelistRuleProtected:
+            'Whitelist rules allow only order and description changes. For other changes, go to Settings → Port whitelist.',
         ruleTargetRequired: 'Enter at least one IP address or port',
-        resolution_adopt: 'Take over management',
-        plan_duplicate_rules:
-            'Rules with identical conditions and actions cannot be adopted. Manually delete duplicate rules and retry.',
-        adoptRuleConfirm: 'After takeover, 1Panel can maintain and delete this existing rule. Continue?',
-        plan_exact_rule_conflict: 'A rule with identical matching conditions has an opposing allow or deny action.',
-        allRulesAlreadyExist: 'All {0} checked rules already exist. There are no new rules to create.',
-        plan_managed_rule_drifted:
-            'The 1Panel management record differs from the live firewall rule. Check the system rule.',
-        plan_opaque_rule_in_target_scope:
-            'The target scope contains a rule that cannot be parsed safely. The operation was stopped.',
-        plan_runtime_permanent_mismatch:
-            'The runtime and permanent firewall configurations differ. Synchronize them first.',
-        plan_protected_rule: 'This rule is protected and cannot be taken over, changed, or deleted.',
-        plan_blocked: 'This rule cannot be applied safely. Refresh the rules and try again.',
         largeRuleSet: 'Too many firewall rules may slow down operations. We recommend using iptables or nftables.',
-        scopeDefaultMismatch: 'The system default zone is {0}; this page manages only the public zone.',
         scopeMissing: 'Managed scope {0} is missing and will be created safely when the first rule is applied.',
-        scopeUnmanagedActive: 'Other active scopes were detected: {0}. 1Panel will not modify their rules.',
         dockerRestart: 'Firewall operations require restarting the Docker service',
         firewallHelper: '{0} system firewall',
         firewallNotStart: 'The system firewall is not enabled at present. Enable it first.',
@@ -4355,8 +4572,6 @@ const message = {
         dockerGuard: 'Container Port Guard',
         systemFirewall: 'Host firewall',
         systemFirewallHelper: 'Controls host port access and inbound firewall rules.',
-        forwardPolicyDropWarning:
-            'The default FORWARD policy for {0} is DROP. Traffic forwarded to other hosts may be blocked unless explicitly allowed by iptables/ip6tables rules. Check the allow rules for the corresponding IP version.',
         forwardingHelper: 'Manages port-forwarding rules.',
         dockerFirewallHelper: 'Selects how 1Panel manages container port protection.',
         dockerNftablesRequirement: 'Docker ≥ 29.0.0, experimental',
@@ -4365,6 +4580,8 @@ const message = {
         addressFamily: 'IP version',
         portOrRange: 'Port / range',
         batchLimit: 'Create or import at most {0} rules per batch (after expansion).',
+        importDuplicatesRemoved:
+            'Removed {0} duplicate rules, including duplicates within the file and rules that already exist.',
         importLimit: 'Import up to {0} rules (counted after expansion), with a file size of at most {1} KB.',
         ruleSyncTitle: 'Synchronize rules',
         ruleSyncAction: 'Sync rules',
@@ -4382,19 +4599,9 @@ const message = {
         ruleSyncBlocked: 'Unavailable',
         ruleSyncReason: 'Check result',
         ruleSyncReasonDetail: {
-            matchesDatabasePolicy: 'The rule already matches the database policy.',
-            managedOrderDiffers: 'The managed rule order differs from the database sequence.',
-            managedOnlyInTarget: 'The managed rule exists only in the target firewall.',
-            managedRuntimeCannotRemove: 'The managed runtime rule cannot be removed safely.',
             missingFromTarget: 'The rule is missing from the target firewall.',
-            targetDiffers: 'The target rule differs from the database policy.',
             alreadyExistsInTarget: 'The rule already exists in the target firewall.',
             onlyInTarget: 'The rule exists only in the target firewall.',
-            stale: 'The firewall rule state is outdated. Refresh and try again.',
-            protectedRule: 'This protected firewall rule cannot be modified.',
-            dockerAcceptReadOnly:
-                'This ACCEPT rule is read-only and will be preserved while other rules are synchronized. To remove it, delete it manually on the host.',
-            cannotReconcile: 'The target rule cannot be reconciled: {0}',
         },
         ruleSyncPartial: 'Synchronization completed: {0} succeeded, {1} already existed, and {2} failed.',
         ruleSyncSuccess: 'Synchronization completed: {0} succeeded, {1} already existed, and {2} were removed.',
@@ -4404,17 +4611,18 @@ const message = {
             remove: 'To remove',
             blocked: 'Unavailable',
         },
-        resetDirectRulesHelper:
-            'Delete all 1Panel system firewall chains, runtime rules, and persisted files from {0}; saved database policies are retained',
-        resetWhitelistRulesHelper:
-            'Reset the active custom firewall configuration in {0}, restore installation defaults, and disable {0}; saved database policies are retained and can be synchronized again.',
+        initializeFromFile: 'Initialize from file',
+        downloadRuleBackup: 'Download rule backup',
+        importFileHelper:
+            'Import JSON files up to 64 MB in file order, in batches. Rules that cannot be converted are reported as errors.',
+        resetDirectRulesHelper: 'Delete all 1Panel host firewall chains, runtime rules and persistence files in {0}.',
+        resetWhitelistRulesHelper: 'Reset custom configuration in {0}, restore defaults and disable it.',
         cleanupForwardingBackendHelper:
-            'Reset the 1Panel port forwarding runtime rules in {0}: delete all related rules and chains while retaining database data',
+            'Delete all 1Panel forwarding rules, chains, and automatic recovery files from {0}. Existing JSON backups are kept.',
         cleanupDockerBackendHelper:
-            'Reset the 1Panel Docker port protection runtime rules in {0}: delete all related rules and chains while retaining database data',
+            'Delete all 1Panel Docker protection rules, chains, and automatic recovery files from {0}. Existing JSON backups are kept.',
         cleanupBeforeBackendSwitch:
-            'The current {0} backend still contains 1Panel runtime rules. Reset it before switching to {1}. Resetting only removes runtime rules; saved database policies are retained and can be initialized or synchronized after switching.',
-        cleanupAction: 'Reset',
+            'Reset the current {0} before switching to {1}, and confirm how its rules will be restored.',
         backendSwitchNotice:
             'Use only one firewall management method at a time. Running multiple firewalls simultaneously may cause rule conflicts, inconsistent status, or container port access failures.',
         switchBackendHelper: 'Switch to {0}?',
@@ -4446,9 +4654,9 @@ const message = {
             'Host INPUT rules do not directly protect this Docker published port. Click to open Container Port Guard.',
         notInitialized: 'Not initialized',
         ipv6RARisk:
-            'IPv6 forwarding is blocked: interfaces {0} have accept_ra=1 and may rely on RA/SLAAC. Review the network configuration, persist accept_ra=2 on interfaces that need RA, then retry.',
+            'IPv6 forwarding is blocked to prevent possible network loss. See the documentation and system logs for details.',
         ipv6RACheckFailed:
-            'Cannot check IPv6 RA configuration. Enabling IPv6 forwarding is blocked. Check the system network configuration and retry.',
+            'IPv6 forwarding is blocked because the network configuration could not be checked. See the system logs for details.',
         ipv6ForwardingOnDemand:
             'IPv6 forwarding is not enabled. It will be checked and enabled when IPv6 rules are added or restored.',
         familyUnsupported: 'The system does not support {0}',
@@ -4462,8 +4670,7 @@ const message = {
         portDetails: 'Port details',
         orphanEndpoints: 'Unassociated endpoints',
         orphanPolicies: 'Unassociated rules',
-        orphanPoliciesHelper:
-            'The following {0} rule(s) are not bound to a Docker port. They will be bound automatically when a matching port is detected.',
+        orphanPoliciesHelper: 'These {0} system rules have no matching published Docker port.',
         composeOrApp: 'Compose / App',
         sources: 'Sources',
         deniedSources: 'Denied sources',
@@ -4472,6 +4679,8 @@ const message = {
         protectionMode: 'Protection mode',
         denySources: 'Deny specified sources',
         allowSources: 'Allow specified sources only',
+        acceptSources: 'Accept specified sources directly',
+        acceptAll: 'Accept all traffic directly',
         denyAll: 'Deny all access',
         dockerGuardMixedFamilyHelper:
             'IPv4 and IPv6 are both selected. Configure source-based policies separately; deny all can be applied directly.',
@@ -4515,7 +4724,7 @@ const message = {
             'Unbind - When unbound, all added firewall rules will become invalid. Proceed with caution. Confirm?',
         portWhiteList: 'Port allowlist',
         whitelistConfigHelper:
-            'The allowlist only saves configuration and protects matching allow rules. Missing rules are added on start, restart, initialization, or synchronization. Editing or deleting allowlist entries does not remove existing rules.',
+            'Saving the allowlist adds missing allow rules and protects matching rules. Editing or deleting allowlist entries does not remove existing rules.',
         whitelistDeleteConfirm:
             'Only this whitelist entry will be deleted. Existing firewall rules will remain. Continue?',
         portWhiteListHelper:
@@ -4533,7 +4742,7 @@ const message = {
         whitelistServicePortsHelper:
             'Enter a single port (1-65535). This does not change the service listening port. Changing the port in the service settings also updates this whitelist entry.',
         whitelistSourcesHelper:
-            'Enter IP addresses or CIDR ranges, separated by commas or new lines. Leave blank to allow all IPv4 and IPv6 sources.',
+            'Enter IP addresses or CIDR ranges, separated by commas or new lines. Leave blank to allow {0}.',
         destinationPortPlaceholder: 'e.g. 80, 80,443, or 8080-8089',
         deleteRuleConfirm: 'Will delete {0} rules. Continue?',
         deleteUsedRuleConfirm:
@@ -6987,16 +7196,16 @@ const message = {
             webhookPreset: 'Preset',
             genericJsonPreset: 'Generic JSON',
             customPreset: 'Custom',
-            webhookUrlSecretHelper: 'The Webhook URL is encrypted at rest and can be viewed and edited here',
             webhookPublicAddressHelper:
                 'Only publicly reachable HTTP/HTTPS addresses are supported; local, private, and reserved addresses are blocked',
             customWebhookRecoveryRequired:
-                'This configuration is invalid or from an older version. Re-enter the Webhook URL and any required secret headers, then save.',
+                'Unable to read the saved Webhook configuration. Re-enter the URL and any required sensitive headers, then test successfully before saving.',
             clearSecret: 'Clear',
-            keepSecret: 'Keep unchanged',
-            secretCleared: 'This secret will be cleared when you save',
+            keepSecret: 'Restore saved value',
             bodyType: 'Body Type',
             bodyTemplate: 'Body Template',
+            formatJson: 'Format',
+            jsonFormatTooLarge: 'The formatted content exceeds the size limit. The original content has been kept.',
             formFieldName: 'Field name',
             formFieldValue: 'Field value',
             addFormField: 'Add Field',
@@ -7279,12 +7488,17 @@ const message = {
             storagePoolHelper: 'The storage pool stores VM disks and ISO files.',
             network: 'Network',
             bridgeName: 'Bridge Name',
+            sourceInterface: 'Host network interface',
+            macvtapNetworkHelper:
+                'The VM acts like a separate computer on your LAN. Other devices can access its IP directly, without changing the host’s existing IP settings. Note: the host and VM cannot communicate directly through this connection by default.',
+            macvtapInterfaceHelper:
+                'Select a wired interface connected to the intended LAN; it can be shared with the host. The LAN assigns the VM’s IP, or you can set it manually in the VM. The network must allow multiple devices on this interface (multiple MAC addresses).',
             natNetworkHelper:
-                'VMs can access the network through the host, but external devices usually cannot access them directly.',
+                'Suitable for VMs that need internet access or expose only a few services. The VM goes online through the host. Other devices usually need separately configured port forwarding to access its services.',
             bridgeNetworkHelper:
-                'Connect VMs to an existing host bridge (such as br0). If the host has an unused additional NIC, create a bridge for it and use it.',
+                'The VM acts like a separate computer connected to a network switch. Both the host and other LAN devices can access it directly. First, configure a bridge on the host.',
             bridgeNameHelper:
-                'Select an existing Linux bridge on the host, such as br0. Physical NICs are not bridges, and docker/libvirt managed bridges cannot be selected here.',
+                'Select a configured bridge, such as br0. If none are available, create one on the host first. Physical interfaces and bridges managed by Docker/libvirt cannot be selected here.',
             natCIDRHelper: 'CIDR, gateway, and DHCP range are used by the new NAT virtual network.',
             networkCIDR: 'Network CIDR',
             gateway: 'Gateway',
@@ -7302,6 +7516,7 @@ const message = {
             available: 'Available',
             vmCount: 'Linked VMs',
             usedIPs: 'Used IPs',
+            usedIPsUnavailable: 'Retrieval not supported yet',
             monitor: 'Monitor',
             monitorNotReady: 'The virtual machine is not running. Monitoring data is unavailable.',
             monitorLoadFailed: 'Failed to get VM monitoring data.',

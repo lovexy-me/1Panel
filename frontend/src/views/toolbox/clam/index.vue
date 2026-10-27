@@ -49,6 +49,8 @@
             </el-card>
             <template #main v-if="clamStatus.isExist">
                 <ComplexTable
+                    :selection-context="() => [searchName]"
+                    row-key="id"
                     :class="{ mask: !clamStatus.isRunning }"
                     v-if="!isSettingShow"
                     :pagination-config="paginationConfig"
@@ -188,7 +190,8 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue';
+import { useSearchState } from '@/utils/search-reset';
+import { toRef, onMounted, reactive, ref } from 'vue';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
 import { deleteClam, handleClamScan, searchClam, updateClam, updateClamStatus } from '@/api/modules/toolbox';
@@ -207,14 +210,18 @@ const selects = ref<any>([]);
 const { docsUrl, isFxplay, isProductPro, isMobile } = useGlobalStore();
 const data = ref();
 const paginationConfig = reactive({
-    cacheSizeKey: 'clam-page-size',
     currentPage: 1,
-    pageSize: Number(localStorage.getItem('clam-page-size')) || 20,
+    pageSize: 20,
     total: 0,
     orderBy: 'createdAt',
     order: 'null',
 });
 const searchName = ref();
+useSearchState(
+    'toolbox/clam/index',
+    { search: searchName, page: toRef(paginationConfig, 'currentPage'), pageSize: toRef(paginationConfig, 'pageSize') },
+    { onRevisit: () => search() },
+);
 
 const opRef = ref();
 const dialogRef = ref();

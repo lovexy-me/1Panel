@@ -1,5 +1,7 @@
+import { bindSearchState } from '@/utils/search-reset';
+import { panelCacheKey } from '@/utils/panel-cache';
 import { defineStore } from 'pinia';
-import { ref, reactive } from 'vue';
+import { ref, reactive, toRef } from 'vue';
 import { MsgError } from '@/utils/message';
 import { checkStreamAuth } from '@/utils/stream-auth';
 
@@ -44,6 +46,16 @@ export const ProcessStore = defineStore('ProcessStore', () => {
         processID: undefined,
         processName: '',
         port: undefined,
+    });
+
+    const searchState = bindSearchState(() => panelCacheKey('host/process'), {
+        pid: toRef(psSearch, 'pid'),
+        name: toRef(psSearch, 'name'),
+        username: toRef(psSearch, 'username'),
+
+        processID: toRef(netSearch, 'processID'),
+        processName: toRef(netSearch, 'processName'),
+        port: toRef(netSearch, 'port'),
     });
 
     let pendingRequestType: 'ps' | 'net' | null = null;
@@ -307,6 +319,7 @@ export const ProcessStore = defineStore('ProcessStore', () => {
     };
 
     return {
+        restoreSearchState: searchState.restore,
         isConnected,
         isConnecting,
         psData,

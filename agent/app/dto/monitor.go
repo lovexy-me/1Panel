@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/1Panel-dev/1Panel/agent/app/model"
@@ -127,6 +128,7 @@ type GPUProcess struct {
 }
 
 type MonitorVLLMSearch struct {
+	Group        string    `json:"group" validate:"omitempty,oneof=overview latency requests"`
 	AppInstallID uint      `json:"appInstallID" validate:"required"`
 	StartTime    time.Time `json:"startTime" validate:"required"`
 	EndTime      time.Time `json:"endTime" validate:"required"`
@@ -141,6 +143,11 @@ type MonitorVLLMData struct {
 
 type MonitorVLLMCurrent struct {
 	AppInstallID uint `json:"appInstallID" validate:"required"`
+}
+
+type MonitorVLLMCurrentData struct {
+	model.MonitorVLLM
+	Metrics map[string]json.RawMessage `json:"metrics,omitempty"`
 }
 
 type MonitorVLLMClean struct {

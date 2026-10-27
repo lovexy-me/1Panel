@@ -495,6 +495,7 @@ const message = {
         recommend: 'Önerilen',
         dir: 'Dizin',
         alias: 'Takma Ad',
+        quickDirDelete: '({0}) silinsin mi?',
         quickDir: 'Hızlı Erişim',
         minQuickJump: 'En az bir hızlı erişim girdisi ekleyin',
         maxQuickJump: 'En fazla dört hızlı erişim girdisi ekleyebilirsiniz',
@@ -570,6 +571,8 @@ const message = {
         cancelKeepAlive: 'Sayfa oturumunu korumayı bırak',
     },
     header: {
+        userCenter: 'Kullanıcı Merkezi',
+        exitSystem: 'Çıkış yap',
         logout: 'Çıkış',
     },
     database: {
@@ -775,6 +778,15 @@ const message = {
     },
     aiTools: {
         agents: {
+            deepSeekAccessHostHelper:
+                'Tarayıcıda kullanılan IPv4 adresini veya ana bilgisayar adını protokol, bağlantı noktası veya yol olmadan girin. HTTPS, uygulamanın yerel sertifikasını kullanır.',
+            deepSeekAuthHelper:
+                'Kullanıcı adı: harf, rakam, nokta, alt çizgi veya tire. Parola: en az 12 karakter; başta/sonda boşluk veya satır sonu içeremez.',
+            octopAuthHelper:
+                'Parola: harf ve rakam içeren en az 8 karakter; yaygın parolalardan kaçının. Reddedilirse kurulum yönergeleri için uygulama günlüklerini kontrol edin.',
+            initialCredentials: 'İlk giriş bilgileri; uygulamada değiştirildiyse güncel parolayı kullanın.',
+            nativeAgentAccessUnavailable:
+                'Mevcut kurulumda uyumlu HTTPS erişim adresi veya bağlantı noktası yok. Uygulama ayarlarını kontrol edin.',
             agent: 'Ajan',
             account: 'Model hesabı',
             batchOperation: 'Toplu işlem',
@@ -1076,6 +1088,13 @@ const message = {
             whiteListHelper: 'Erişimi yalnızca beyaz listedeki IPlerle sınırlayın',
         },
         aiProxy: {
+            deploymentNoticeTitle: 'AI Gateway bağımsız dağıtımı destekliyor',
+            deploymentNoticeDescription:
+                'AI Gateway artık bağımsız dağıtımı destekliyor. 1Panel içindeki AI Gateway artık güncelleme almayacak. Uygulama mağazasından bağımsız sürümü yüklemenizi öneririz. Mevcut sürümü kullanmaya da devam edebilirsiniz.',
+            deploymentNoticeContinue: 'Anladım, kullanmaya devam et',
+            deploymentNoticeAppStore: 'Uygulama mağazasına git',
+            deploymentNoticeNoAppPermission:
+                'Uygulama mağazasına erişim izniniz yok. Bağımsız sürümü yüklemek için yöneticinizle iletişime geçin.',
             title: 'AI Ağ Geçidi',
             apiReference: 'API Referansı',
             notInstalled: 'Kurulu değil',
@@ -1483,15 +1502,13 @@ const message = {
             statusWaiting: 'Bekliyor',
             base: 'Temel Bilgiler',
             backend: 'Backend',
-            baseUrl: 'Base URL',
             endpoint: 'Endpoint',
             tokenizer: 'Tokenizer',
-            tokenizerPlaceholder: 'Yerel tokenizer dizini seçin veya girin, örn. /opt/1panel/tokenizers/DeepSeek-V3',
+            tokenizerPlaceholder: 'Ana düğümdeki mutlak dizin yolunu veya Hugging Face depo kimliğini girin',
             runConfig: 'Çalıştırma Yapılandırması',
             rawResult: 'Ham Sonuç',
             resultMetrics: 'Sonuç Metrikleri',
             contextTokens: 'Bağlam Uzunluğu',
-            contextTokensHelper: 'Bu benchmark için giriş token sınırı ile çıkış token sınırının toplamı.',
             outputThroughput: 'Çıkış Throughput',
             outputThroughputHelper:
                 'Saniye başına üretilen çıkış token sayısı. Daha yüksek değer daha hızlı üretimdir.',
@@ -1501,23 +1518,47 @@ const message = {
             firstTokenLatency: 'İlk Token Gecikmesi',
             firstTokenLatencyHelper:
                 'İsteğin gönderilmesinden ilk token alınana kadar geçen süre. Daha düşük değer daha hızlı yanıttır.',
-            tokenValueHelper: 'Pozitif tam sayı veya k değeri girin, örn. 512, 1k, 32k',
             numPrompts: 'Prompt',
             concurrency: 'Eşzamanlılık',
             mean: 'Ortalama',
             median: 'Medyan',
             requestRate: 'İstek Hızı',
             requestRateUnlimited: 'Sınırsız (maksimum throughput)',
-            requestRateCustom: 'Özel QPS',
             requestRateCustomPlaceholder: 'Saniye başına istek, örn. 2.5',
             successfulRequests: 'Başarılı istekler',
             requestThroughput: 'İstek Throughput',
-            timeout: 'Zaman aşımı (saniye)',
             image: 'vLLM İmajı',
-            ignoreEos: "EOS'u yok say",
+            ignoreEos: 'Dizi sonu belirtecini (EOS) yok say',
+            ignoreEosHelp:
+                'Ayarlanan çıktı uzunluğunu test etmek için EOS nedeniyle erken durmayı önler. Diğer durdurma koşulları geçerlidir; sunucu desteği gerekir.',
             extraHeaders: 'Ek Başlıklar',
         },
         vllmMonitor: {
+            concurrency: 'Mevcut eşzamanlı istekler',
+            sampleMoment: 'Örnekleme anında',
+            sampleWindow: 'Örnekleme aralığı',
+            requestUnit: 'istek',
+            processing: 'İşleniyor',
+            queued: 'Kuyrukta',
+            requestTiming: 'İstek süreleri',
+            completedRequests: 'Aralıkta tamamlanan istek sayısı',
+            tokensPerSecond: 'tokens/sn',
+            requestsPerSecond: 'İstek/sn',
+            finishReasonLabels: {
+                stop: 'Normal tamamlanma',
+                length: 'Uzunluk sınırına ulaşıldı',
+                abort: 'İptal edildi',
+                error: 'Hata',
+                repetition: 'Tekrarlama',
+            },
+            requestAnalysis: 'İstek analizi',
+            promptDistribution: 'Girdi belirteci uzunluk dağılımı',
+            generationDistribution: 'Çıktı belirteci uzunluk dağılımı',
+            finishReasons: 'İstek bitiş nedenleri',
+            queueTime: 'Ortalama kuyruk süresi',
+            averageGenerationTokens: 'İstek başına ortalama çıktı belirteci',
+            prefixCacheHitRate: 'Önek önbelleği isabet oranı',
+            distributionHelper: 'Uzunluk dağılımları istek hızlarını gösterir ve ortalama/tepe seçiminden etkilenmez.',
             cleanHelper:
                 'Yalnızca bu vLLM örneğinin izleme geçmişi temizlensin mi? Diğer örnekler, ana makine ve GPU izlemesi etkilenmez.',
             overview: 'Genel bakış',
@@ -1703,6 +1744,157 @@ const message = {
             modelType: 'Model türü',
         },
     },
+    benchmarkPlan: {
+        prepareTimeoutHelp: 'Hazırlık süresi sınırıdır; toplam zaman aşımına dahil değildir.',
+        pointTimeoutHelp:
+            'Her nokta ayrı ölçülür; başlangıç, ısınma ve tüm istekler dahildir. Kalan toplam süreyle sınırlıdır.',
+        totalTimeoutHelp: 'Hazırlık sonrası başlar, tüm noktaları ve aralıkları kapsar. Süre dolunca test durur.',
+        concurrencyLevels: 'Eşzamanlılık seviyeleri',
+        concurrencyHelp: 'Seviyeler sırayla test edilir. Her değer aynı anda devam eden istek sayısını sınırlar.',
+        requestCountMode: 'İstek sayısı ayarı',
+        fixedRequestMode: 'Seviye başına sabit istek',
+        scaledRequestMode: 'Eşzamanlılığa göre hesapla',
+        requestsPerPoint: 'Seviye başına istek',
+        requestCountFormula:
+            'Seviye başına: sabit değer veya max(eşzamanlılık × çarpan, minimum istek). Senaryo toplamı: seviyelerin toplamı × tekrar sayısı, ısınma hariç.',
+        controlLog: 'Hazırlık ve kontrol günlüğü',
+        executionLog: 'Yürütme günlüğü',
+        pointLog: 'Test noktası #{0} · {1} · Yürütme günlüğü',
+        archivedLog: '{0} (arşiv {1})',
+        tokenLengths: 'Girdi / çıktı tokenları',
+        kind: 'Sonuç kategorisi',
+        kindServe: 'serve (normal testler)',
+        kindPD: 'pd (Prefill/Decode ölçümleri)',
+        saveDetailed: 'İstek ayrıntılarını kaydet',
+        saveDetailedHelp:
+            'Her isteğin uzunluğunu, gecikmesini, üretilen metni ve hatalarını kaydeder. Devre dışı bırakıldığında özet ölçümler korunur ve sonuç dosyalarının boyutu azalır.',
+        parameters: 'Parametreler',
+        temperatureHelp:
+            'Çıktının rastgeleliğini kontrol eder. Sıfır genellikle daha kararlı çıktı sağlar; yüksek değerler rastgeleliği artırır.',
+        pointTimeout: 'Nokta başına zaman aşımı (saniye)',
+        temperature: 'Örnekleme sıcaklığı',
+        requestUrl: 'API adresi',
+        invalidRequestUrl:
+            '/chat/completions veya /completions ile biten tam bir HTTP(S) adresi girin; kimlik bilgisi, sorgu parametresi veya parça içermemelidir.',
+        requestRateHelp:
+            'Yalnızca bu senaryoya uygulanır. Sınırsız hız da eşzamanlılık sınırına uyar; kesirli QPS desteklenir.',
+        tokenizerModeHelp:
+            'Kullanılabilir modlar, test imajındaki vLLM sürümüne bağlıdır. Görev hazırlanırken belirteçleyicinin yüklenebildiği kontrol edilir.',
+        invalidBaseUrl: 'Kimlik bilgisi, sorgu veya parça içermeyen geçerli bir HTTP(S) URL girin.',
+        invalidEndpoint:
+            'Seçilen protokole uygun, {0} ile biten ve sorgu parametresi veya parça içermeyen bir uç nokta yolu girin.',
+        invalidTokenizer:
+            'Mutlak dizin veya depo kimliği kullanın; göreli yollar, virgüller ve satır sonları desteklenmez.',
+        invalidRequestRate: 'Sınırsızı seçin veya 0’dan büyük sonlu bir sayı girin; ondalık sayılar desteklenir.',
+        invalidCaCert: 'Birincil düğümdeki CA sertifikasının mutlak dosya yolunu virgül veya satır sonu olmadan girin.',
+        bodyOverride: 'Ek gövde {0} parametresini geçersiz kılamaz.',
+        invalidBody: 'Geçerli bir JSON nesnesi girin.',
+        invalidConcurrencies: 'Her biri 1–100000 arasında tam sayı olan 1–100 eşzamanlılık değeri girin.',
+        emptyRequestCount: 'Eşzamanlılığa göre hesaplamada çarpan ve minimum istek sayısı birlikte 0 olamaz.',
+        requestCountLimit: 'Nokta başına hesaplanan istek sayısı 1000000 değerini aşamaz.',
+        contextExceeded: 'Giriş, çıkış tokenları ve şablon rezervi bağlam sınırını aşıyor.',
+        planLimit: 'Toplam en fazla 2000 noktadan oluşan 1–100 senaryo girin.',
+
+        caCertHelp:
+            'HTTPS hizmetlerini doğrulamak için ana sunucudan bir CA sertifikası seçin. Sistem sertifikaları için boş bırakın.',
+        extraBody: 'Ek istek gövdesi',
+        entryKey: 'Parametre adı',
+        entryValue: 'Parametre değeri',
+        tokenizerMode: 'Belirteçleyici modu',
+        requireIdle: 'Başlamadan önce hizmetin boşta olduğunu denetle',
+        requireIdleHelp:
+            'Isınma ve yük testi öncesinde /metrics bir kez denetlenir. Hizmet meşgulse veya boşta olduğu doğrulanamazsa durur. Test sırasında başka trafiği engellemez.',
+        trustRemoteCode: 'Uzak koda güven',
+        trustRemoteCodeHelp:
+            'Model deposundaki özel belirteçleyici kodunun test konteynerinde çalışmasına izin verir. Yalnızca gerektiğinde ve kaynağa güvendiğinizde etkinleştirin.',
+        tokenizerModes: {
+            auto: 'Otomatik (önerilen)',
+            slow: 'Yavaş belirteçleyici',
+            mistral: 'Mistral belirteçleyicisi',
+        },
+        quickDescription: 'Tek bir istekle bağlantıyı ve ölçüm sürecini doğrular.',
+        regularDescription: 'Günlük performans testleri için kısa, orta ve uzun iş yükleri.',
+        fullDescription:
+            'Uzun girdiler ve ortak önekler dahil, farklı senaryolar ve eşzamanlılık düzeylerinde tekrarlı ölçümler.',
+        customDescription: 'Bir senaryoyla başlayın, parametrelerini ayarlayın ve gerektiğinde yenilerini ekleyin.',
+        scenarios: 'Senaryolar',
+        builtIn: 'Yerleşik',
+        builtInHelp: 'Yerleşik planlar düzenlenemez veya silinemez. Test oluştururken bir kopyayı ayarlayın.',
+        modified: 'Değiştirildi',
+
+        imageExists: 'Yerelde mevcut',
+        imageNeedsPull: 'İndirme gerekli',
+        remark: 'Notlar',
+        source: 'Yerel hizmet',
+        mode: 'Test planı',
+        quick: 'Hızlı kontrol',
+        regular: 'Normal',
+        full: 'Tam',
+        custom: 'Özel',
+        addScenario: 'Senaryo ekle',
+        advanced: 'Gelişmiş ayarlar',
+        points: 'Ölçüm noktaları',
+        warmups: 'Isınma istekleri',
+        fixedRequests: 'Sabit istekler',
+        multiplier: 'Eşzamanlılık başına istek',
+        minRequests: 'En az istek',
+        trials: 'Tekrarlar',
+        prefixRatio: 'Ortak önek oranı',
+        totalTimeout: 'Tur zaman aşımı (sn)',
+        prepareTimeout: 'Hazırlık zaman aşımı (sn)',
+        interval: 'Ölçüm aralığı (sn)',
+        context: 'Bağlam sınırı (0: bilinmiyor)',
+        reserve: 'Şablon için ayrılan token',
+        storage: 'Depolama sınırı (MiB)',
+        stopOnError: 'Hatada sonraki ölçümleri durdur',
+        caCert: 'CA sertifikası yolu',
+        validTrials: 'Geçerli / toplam tekrar',
+        retry: 'Seçili ölçümleri yinele',
+        environment: 'Çalışma ortamı',
+        plan: 'Sabitlenmiş yapılandırma',
+        clientHelp:
+            'İstemci konteyneri ana düğümde çalışır ve mevcut hizmete istek gönderir. Çıkarım hizmeti başlatmaz ve GPU gerektirmez.',
+        retryHelp: 'Yalnızca seçili sorunlu ölçümler aynı parametreler ve yeni tohumlarla yinelenir.',
+        secretHelp: 'Kopyalar API anahtarlarını ve başlıkları içermez. Gerekiyorsa yeniden girin.',
+        resultHelp:
+            'Medyan ve en düşük/en yüksek değerler yalnızca istek anomalisi olmayan başarılı çalışmaları içerir. P99, çalışma başına P99 değerlerinin medyanıdır. Önbellek ve dış trafik kontrol edilmez.',
+    },
+    benchmarkOverview: {
+        noResults: 'Geçerli test sonucu yok. Hata nedenini ve günlükleri kontrol edin.',
+        noGroupResults: 'Bu birleşim için geçerli sonuç yok. Başka bir senaryo veya eşzamanlılık seçin.',
+        partial: 'Kısmi sonuçlar: test tamamen başarılı olmadı. Metrikler yalnızca geçerli noktaları kapsar.',
+        highlights: 'Temel metrikler',
+        aggregate: 'Bu birleşimdeki geçerli çalıştırmaların medyanı. Ayrıntılar için metriğe tıklayın.',
+        trend: 'Eşzamanlılık eğilimi',
+        std: 'Standart sapma',
+        min: 'Minimum',
+        max: 'Maksimum',
+        tpot: 'Çıktı tokeni başına süre',
+        tpotHelp: 'İlk tokenden sonra çıktı tokeni başına ortalama üretim süresi.',
+        itl: 'Tokenler arası gecikme',
+        itlHelp: 'Akış yanıtındaki ardışık tokenler arasındaki süre.',
+        e2el: 'Uçtan uca gecikme',
+        e2elHelp: 'İsteğin gönderilmesinden yanıtın tamamının alınmasına kadar geçen süre.',
+        requestHelp: 'Saniyede tamamlanan istek sayısı.',
+        usageHelp:
+            'Bu birleşimdeki geçerli çalıştırmaların medyanlarıdır; tüm testin istek toplamları değildir. Anormal çalıştırmalar için noktalar sekmesine bakın.',
+        duration: 'Çalıştırma süresi',
+        throughput: 'İşleme hızı',
+        latency: 'Gecikme',
+        usage: 'İstekler ve kullanım (geçerli çalıştırmalar)',
+    },
+    benchmarkTokenizer: {
+        title: 'Tokenizer yönetimi',
+        local: 'Yerel dizini kaydet',
+        upload: 'Tokenizer paketini yükle',
+        uploadHelp: 'Model ağırlıkları içermeyen ZIP / tar.gz yükleyin. Sınır: sıkıştırılmış 128 MiB, açılmış 256 MiB.',
+        source: 'İçe aktarma yöntemi',
+        deleteLocal: '“{0}” tokenizer kaydı kaldırılsın mı? Özgün dizin ve dosyalar korunur.',
+        deleteUpload: '“{0}” tokenizer ve yüklenen dosyaları silinsin mi? Geçmiş test raporları korunur.',
+        select: 'Bir tokenizer seçin',
+        selectHelp:
+            'Çevrimdışı test için yönetilen bir tokenizer seçin. Özel giriş yerel dizin veya depo adını destekler.',
+    },
     container: {
         createByCommand: 'Komutla oluştur',
         importContainerBackupTip: 'Konteyner yedek dosyasını içe aktar, yalnızca .tar.gz desteklenir',
@@ -1883,6 +2075,11 @@ const message = {
         imageName: 'İmaj adı',
         pull: 'Çek',
         path: 'Yol',
+        imageUploadDrop: 'Bir imaj dosyasını buraya sürükleyin veya yüklemek için tıklayın',
+        imageUploadHelper:
+            'Tüm dosya biçimlerine izin verilir. Docker içeriği doğrular. Yüklenen dosyalar, içe aktarmayı yeniden denemek veya elle silmek için saklanır.',
+        imageUploadEmpty: 'Dosya boş. Geçerli bir imaj arşivi seçin.',
+        imageImportSubmitted: 'İmajı içe aktarma görevi gönderildi. Sonuç için görev günlüğünü kontrol edin.',
         importImage: 'İçe aktar',
         buildArgs: 'Derleme Argümanları',
         imageBuild: 'Oluştur',
@@ -2921,6 +3118,9 @@ const message = {
         privateKey: 'Özel Anahtar',
         publicKey: 'Genel Anahtar',
         password: 'Parola',
+        existingPassPhrase: 'Mevcut özel anahtar parolası',
+        existingPassPhraseHelper:
+            'Özel anahtar şifreliyse mevcut parolayı girin; değilse boş bırakın. Bu işlem parolayı değiştirmez.',
         createMode: 'Oluşturma Yöntemi',
         generate: 'Otomatik Oluştur',
         unSyncPass: 'Anahtar parolası senkronize edilemez',
@@ -2961,6 +3161,20 @@ const message = {
         remote: 'Uzak SSH',
     },
     setting: {
+        panelCache: {
+            title: 'Önbellek ayarları',
+            tabs: 'Sekme önbelleği',
+            pagination: 'Sayfalama önbelleği',
+            refresh: 'Yenileme aralığı önbelleği',
+            search: 'Arama alanı önbelleği',
+            duration: 'Önbellek süresi',
+            '24h': '24 saat',
+            week: 'Bir hafta',
+            month: 'Bir ay',
+            forever: 'Süresiz',
+            helper: 'Geçerlilik süresi son durum değişikliğinden itibaren hesaplanır. Süre dolduğunda varsayılan değerler geri yüklenir.',
+        },
+
         panel: 'Panel',
         user: 'Panel kullanıcısı',
         userChange: 'Panel kullanıcısını değiştir',
@@ -3709,6 +3923,7 @@ const message = {
         link: 'Bağlantı',
         showCurrentArch: 'Mimari',
         syncLocalApp: 'Yerel Uygulamayı Senkronize Et',
+        localAppSyncToNodes: 'Yerel uygulama eşitlemesine alt düğümleri dahil et',
         memoryRequiredHelper: 'Geçerli uygulama bellek gereksinimi {0}',
         gpuConfig: 'GPU Desteğini Etkinleştir',
         gpuConfigHelper:
@@ -4232,6 +4447,9 @@ const message = {
             'Etkinleştirilmesi sertifika sızıntısını önleyebilir, varsayılan bir web sitesi ayarlamak bu ayarı geçersiz kılar',
     },
     ssl: {
+        deleteConfirm:
+            'Aşağıdaki sertifikalar silinecek. ACME sertifikaları otomatik olarak iptal edilecek. Devam edilsin mi?',
+        deleteAndRevoke: 'Sil ve iptal et',
         create: 'İstek',
         provider: 'Tür',
         manualCreate: 'Manuel olarak oluşturuldu',
@@ -4276,7 +4494,7 @@ const message = {
         pushDir: 'Sertifikayı yerel dizine aktar',
         dir: 'Dizin',
         pushDirHelper:
-            'Sertifika dosyası "fullchain.pem" ve anahtar dosyası "privkey.pem" bu dizinde oluşturulacaktır.',
+            'Birden fazla dizin seçin veya her satıra bir dizin girin. Her dizinde "fullchain.pem" ve "privkey.pem" dosyaları oluşturulacaktır.',
         organizationDetail: 'Organizasyon detayları',
         fromWebsite: 'Web sitesinden',
         dnsMauanlHelper:
@@ -4317,45 +4535,48 @@ const message = {
         useEAB: 'EAB kimlik doğrulamasını kullan',
     },
     firewall: {
+        ipv6Support: 'IPv6 desteği',
+        ipv6SupportHelper:
+            'Sunucunun IPv6 ağ işlevlerini etkilemeden IPv6 güvenlik duvarı kurallarının yönetimini ve uygulanmasını kontrol eder.',
+        ipv6DisableContainerHelper: 'Konteynerlerin IPv6 port bilgilerini gizleyin.',
+        ipv6DisableWhitelistHelper:
+            'İzin listesindeki IPv6 kurallarını kaldırın ve mevcut diğer IPv6 kurallarını koruyun.',
+        ipv6DisableRulesHelper: '1Panel tarafından yönetilen iptables ve nftables IPv6 kurallarını devre dışı bırakın.',
+        ipv6DisableNetworkHelper: 'Bu işlem sunucunun IPv6 ağ işlevlerini kapatmaz.',
+        ipv6DisableEffectHelper: 'İlgili IPv6 erişim kısıtlamaları ve port yönlendirmeleri artık uygulanmaz.',
+        ipv6Disabled: 'IPv6 desteği devre dışı. Önce güvenlik duvarı ayarlarından etkinleştirin.',
+        familyRepair: 'Onar',
+        familyIncomplete: '{0} zincirleri eksik',
+        resetWithBackup: 'Kuralları yedekle ve sıfırla',
+        resetOnly: 'Yalnızca sıfırla',
+        resetWithBackupHelper:
+            'Geçerli modül kurallarını ilk kurulumda veya güvenlik duvarı başlatılırken geri yüklemek için JSON olarak kaydedin.',
+        resetOnlyHelper: 'Yeni yedek oluşturmadan mevcut kuralları temizleyin. Önceki yedekler korunur.',
+        backupDirectoryHelper:
+            '{0} içindeki geçerli kural yedekleri listelenir. Varsayılan olarak en yeni dosya seçilir.',
+        startOnly: 'Yalnızca başlat',
+        startAndRestore: 'Başlat ve yedekten geri yükle',
+        startWithBackupHelper:
+            'Güvenlik duvarını normal başlatın veya başlatıp kuralları geri yüklemek için mevcut bir JSON yedeği seçin.',
+        restoreAllRules: 'Başlat ve kuralları geri yükle',
+        importRuleBackup: 'Yedekten içe aktar',
+        initializeOnly: 'Yalnızca başlat',
+        backupRuleCount: 'Kural sayısı',
+        noRuleBackup: 'Geri yüklenebilir kural yedeği bulunamadı',
+        ruleBackupLoadFailed: 'Kural yedekleri yüklenemedi. Yeniden deneyin veya yedeği geri yüklemeden başlatın.',
         create: 'Kural oluştur',
         edit: 'Kuralı düzenle',
         quickJump: 'Hızlı erişim',
         used: 'Kullanıldı',
         unUsed: 'Kullanılmadı',
-        managed: 'Panel tarafından oluşturuldu',
-        managedHelper: '1Panel tarafından oluşturulur ve yönetilir. Düzenlenebilir veya silinebilir.',
-        adopted: 'Harici yönetilen',
-        adoptedHelper: 'Önceden sistemde bulunan ve artık 1Panel tarafından yönetilen bir kuraldır.',
-        external: 'Harici kural',
-        externalHelper:
-            'Sistemde bulunan ancak henüz 1Panel tarafından yönetilmeyen bir kuraldır. Gerektiğinde yönetime alınabilir.',
-        protected: 'Sistem korumalı',
-        protectedHelper: 'Yerleşik kurallar ve beyaz listeyle tam olarak eşleşen kurallar düzenlenemez veya silinemez.',
-        stateShort: {
-            managed: 'Panel',
-            adopted: 'Yönetilen',
-            external: 'Harici',
-            protected: 'Korumalı',
-            drifted: 'Farklı',
-        },
+        whitelist: 'İzin listesi',
+        builtinRuleProtected: 'Sistemin yerleşik koruma kuralıdır. Düzenlenemez veya silinemez.',
+        whitelistRuleProtected:
+            'İzin listesi kurallarında yalnızca sıra ve açıklama değiştirilebilir. Diğer değişiklikler için Ayarlar → İzin verilen bağlantı noktaları bölümüne gidin.',
         ruleTargetRequired: 'En az bir IP adresi veya port girin',
-        resolution_adopt: 'Yönetimi devral',
-        plan_duplicate_rules:
-            'Koşulları ve eylemleri aynı olan yinelenen kurallar yönetime alınamaz. Yinelenen kuralları elle silip yeniden deneyin.',
-        adoptRuleConfirm: 'Devraldıktan sonra 1Panel bu mevcut kuralı yönetebilir ve silebilir. Devam edilsin mi?',
-        plan_exact_rule_conflict:
-            'Aynı eşleşme koşullarına sahip, ancak izin verme veya reddetme eylemi zıt olan bir kural zaten var.',
-        allRulesAlreadyExist: 'Kontrol edilen {0} kuralın tümü zaten mevcut. Oluşturulacak yeni kural yok.',
-        plan_managed_rule_drifted: 'Yönetilen kural etkin güvenlik duvarıyla eşleşmiyor. Önce farkı giderin.',
-        plan_opaque_rule_in_target_scope: 'Hedef kapsamda güvenle ayrıştırılamayan bir kural var. İşlem durduruldu.',
-        plan_runtime_permanent_mismatch: 'Etkin ve kalıcı güvenlik duvarı yapılandırmaları farklı. Önce eşitleyin.',
-        plan_protected_rule: 'Bu kural korumalıdır; yönetimi devralınamaz, değiştirilemez veya silinemez.',
-        plan_blocked: 'Bu kural güvenle uygulanamıyor. Listeyi yenileyip tekrar deneyin.',
         largeRuleSet:
             'Çok fazla güvenlik duvarı kuralı işlemleri yavaşlatabilir. iptables veya nftables kullanılması önerilir.',
-        scopeDefaultMismatch: 'Sistemin varsayılan zone değeri {0}; bu sayfa yalnızca public zone alanını yönetir.',
         scopeMissing: 'Yönetilen {0} kapsamı eksik ve ilk kural uygulanırken güvenli şekilde oluşturulacak.',
-        scopeUnmanagedActive: 'Başka etkin kapsamlar algılandı: {0}. 1Panel bunların kurallarını değiştirmez.',
         dockerRestart: 'Güvenlik duvarı işlemleri Docker hizmetinin yeniden başlatılmasını gerektirir',
         firewallHelper: '{0} sistem güvenlik duvarı',
         firewallNotStart: 'Sistem güvenlik duvarı şu anda etkin değil. Önce etkinleştirin.',
@@ -4378,8 +4599,6 @@ const message = {
         dockerGuard: 'Konteyner portu koruması',
         systemFirewall: 'Ana makine güvenlik duvarı',
         systemFirewallHelper: 'Ana makine port erişimini ve gelen kuralları yönetir.',
-        forwardPolicyDropWarning:
-            '{0} için varsayılan FORWARD ilkesi DROP olarak ayarlanmış. Diğer ana bilgisayarlara yönlendirilen trafik, iptables/ip6tables kurallarıyla açıkça izin verilmediği sürece engellenebilir. İlgili IP sürümünün izin kurallarını kontrol edin.',
         forwardingHelper: 'Port yönlendirme kurallarını yönetir.',
         dockerFirewallHelper: '1Panel konteyner portu korumasının nasıl yönetileceğini seçer.',
         dockerNftablesRequirement: 'Docker ≥ 29.0.0, deneysel',
@@ -4388,6 +4607,8 @@ const message = {
         addressFamily: 'IP sürümü',
         portOrRange: 'Port / aralık',
         batchLimit: 'Genişletme sonrasında bir defada en fazla {0} kural oluşturabilir veya içe aktarabilirsiniz.',
+        importDuplicatesRemoved:
+            'Dosya içindeki tekrarlar ve zaten mevcut kurallar dahil {0} yinelenen kural kaldırıldı.',
         importLimit:
             'En fazla {0} kural (genişletme sonrası sayıya göre) içe aktarılabilir; dosya boyutu {1} KB değerini aşmamalıdır.',
         ruleSyncTitle: 'Kuralları eşitle',
@@ -4406,19 +4627,9 @@ const message = {
         ruleSyncBlocked: 'Kullanılamaz',
         ruleSyncReason: 'Kontrol sonucu',
         ruleSyncReasonDetail: {
-            matchesDatabasePolicy: 'Kural zaten veritabanı ilkesiyle eşleşiyor.',
-            managedOrderDiffers: 'Yönetilen kuralların sırası veritabanı sırasından farklı.',
-            managedOnlyInTarget: 'Yönetilen kural yalnızca hedef güvenlik duvarında mevcut.',
-            managedRuntimeCannotRemove: 'Yönetilen etkin kural güvenli bir şekilde kaldırılamıyor.',
             missingFromTarget: 'Kural hedef güvenlik duvarında bulunmuyor.',
-            targetDiffers: 'Hedef kural veritabanı ilkesinden farklı.',
             alreadyExistsInTarget: 'Kural hedef güvenlik duvarında zaten mevcut.',
             onlyInTarget: 'Kural yalnızca hedef güvenlik duvarında mevcut.',
-            stale: 'Güvenlik duvarı kuralının durumu güncel değil. Yenileyip tekrar deneyin.',
-            protectedRule: 'Bu korumalı güvenlik duvarı kuralı değiştirilemez.',
-            dockerAcceptReadOnly:
-                'Bu ACCEPT kuralı salt okunurdur ve diğer kurallar eşitlenirken korunur. Kaldırmak için ana makinede manuel olarak silin.',
-            cannotReconcile: 'Hedef kural eşitlenemiyor: {0}',
         },
         ruleSyncPartial: 'Eşitleme tamamlandı: {0} başarılı, {1} zaten mevcut, {2} başarısız.',
         ruleSyncSuccess: 'Eşitleme tamamlandı: {0} başarılı, {1} zaten mevcut, {2} silindi.',
@@ -4428,17 +4639,20 @@ const message = {
             remove: 'Silinecek',
             blocked: 'Kullanılamaz',
         },
+        initializeFromFile: 'Dosyadan başlat',
+        downloadRuleBackup: 'Kural yedeğini indir',
+        importFileHelper:
+            '64 MB boyutuna kadar JSON dosyalarını dosya sırasıyla toplu olarak içe aktarın. Dönüştürülemeyen kurallar hata olarak bildirilir.',
         resetDirectRulesHelper:
-            '{0} içindeki 1Panel sistem güvenlik duvarı zincirlerini, çalışma zamanı kurallarını ve kalıcı dosyaları silin; veritabanı ilkelerini koruyun',
+            '{0} içindeki tüm 1Panel ana makine güvenlik duvarı zincirlerini, etkin kuralları ve kalıcı dosyaları silin.',
         resetWhitelistRulesHelper:
-            '{0} içindeki etkin özel yapılandırmayı sıfırlayın, kurulum varsayılanlarını geri yükleyin ve {0} öğesini devre dışı bırakın; veritabanı ilkeleri korunur ve yeniden eşitlenebilir.',
+            '{0} özel yapılandırmasını sıfırlayın, varsayılanları geri yükleyin ve devre dışı bırakın.',
         cleanupForwardingBackendHelper:
-            '{0} içindeki 1Panel bağlantı noktası yönlendirme çalışma zamanı kurallarını sıfırlayın: ilgili tüm kuralları ve zincirleri silip veritabanı verilerini koruyun',
+            '{0} üzerindeki tüm 1Panel yönlendirme kurallarını, zincirlerini ve otomatik kurtarma dosyalarını silin. Mevcut JSON yedekleri korunur.',
         cleanupDockerBackendHelper:
-            '{0} içindeki 1Panel Docker bağlantı noktası koruma çalışma zamanı kurallarını sıfırlayın: ilgili tüm kuralları ve zincirleri silip veritabanı verilerini koruyun',
+            '{0} üzerindeki tüm 1Panel Docker koruma kurallarını, zincirlerini ve otomatik kurtarma dosyalarını silin. Mevcut JSON yedekleri korunur.',
         cleanupBeforeBackendSwitch:
-            'Mevcut {0} arka ucu hâlâ 1Panel çalışma zamanı kuralları içeriyor. {1} arka ucuna geçmeden önce sıfırlayın. Sıfırlama yalnızca çalışma zamanı kurallarını temizler; veritabanı ilkeleri korunur ve geçişten sonra yeniden başlatılabilir veya eşitlenebilir.',
-        cleanupAction: 'Sıfırla',
+            '{1} sistemine geçmeden önce mevcut {0} sistemini sıfırlayın ve kuralların nasıl geri yükleneceğini doğrulayın.',
         backendSwitchNotice:
             'Yalnızca bir güvenlik duvarı yönetim yönteminin etkinleştirilmesi önerilir. Birden fazla güvenlik duvarının aynı anda çalışması kural çakışmalarına, tutarsız durumlara veya konteyner bağlantı noktası erişim sorunlarına yol açabilir.',
         switchBackendHelper: '{0} arka ucuna geçilsin mi?',
@@ -4471,9 +4685,9 @@ const message = {
             'Ana makine INPUT kuralları bu Docker yayımlanmış portunu doğrudan korumaz. Konteyner portu korumasını açmak için tıklayın.',
         notInitialized: 'Başlatılmadı',
         ipv6RARisk:
-            'IPv6 yönlendirme engellendi: {0} arayüzlerinde accept_ra=1 ayarlı ve bu arayüzler RA/SLAAC kullanıyor olabilir. Ağ yapılandırmasını kontrol edin, RA gereken arayüzlerde accept_ra=2 ayarını kalıcı olarak uygulayın ve yeniden deneyin.',
+            'Ağ bağlantısının kesilme riski nedeniyle IPv6 yönlendirmesi engellendi. Belgeleri ve sistem günlüklerini inceleyin.',
         ipv6RACheckFailed:
-            'IPv6 RA yapılandırması kontrol edilemedi. IPv6 yönlendirmeyi etkinleştirme engellendi. Sistem ağ yapılandırmasını kontrol edip yeniden deneyin.',
+            'Ağ yapılandırması denetlenemediği için IPv6 yönlendirmesi engellendi. Ayrıntılar için sistem günlüklerini inceleyin.',
         ipv6ForwardingOnDemand:
             'IPv6 yönlendirme etkin değil. IPv6 kuralları eklenirken veya geri yüklenirken kontrol edilip etkinleştirilecektir.',
         familyUnsupported: 'Sistem {0} desteğini sunmuyor',
@@ -4487,8 +4701,7 @@ const message = {
         portDetails: 'Port ayrıntıları',
         orphanEndpoints: 'İlişkilendirilmemiş uç noktalar',
         orphanPolicies: 'İlişkilendirilmemiş kurallar',
-        orphanPoliciesHelper:
-            'Aşağıdaki {0} kural bir Docker portuna bağlı değil. Eşleşen bir port algılandığında otomatik olarak bağlanır.',
+        orphanPoliciesHelper: 'Bu {0} sistem kuralıyla eşleşen yayımlanmış bir Docker bağlantı noktası yok.',
         composeOrApp: 'Compose / Uygulama',
         sources: 'Kaynaklar',
         deniedSources: 'Reddedilen kaynaklar',
@@ -4497,6 +4710,8 @@ const message = {
         protectionMode: 'Koruma modu',
         denySources: 'Belirtilen kaynakları reddet',
         allowSources: 'Yalnızca belirtilen kaynaklara izin ver',
+        acceptSources: 'Belirtilen kaynakları doğrudan kabul et',
+        acceptAll: 'Tüm trafiği doğrudan kabul et',
         denyAll: 'Tüm erişimi reddet',
         dockerGuardMixedFamilyHelper:
             'IPv4 ve IPv6 birlikte seçildi. Kaynak tabanlı ilkeleri ayrı ayrı yapılandırın; tüm erişimi reddet doğrudan uygulanabilir.',
@@ -4539,7 +4754,7 @@ const message = {
             'Bağlantıyı Kaldır - Bağlantı kaldırıldığında, eklenen tüm güvenlik duvarı kuralları geçersiz olacaktır. Dikkatli ilerleyin. Onaylıyor musunuz?',
         portWhiteList: 'Port beyaz listesi',
         whitelistConfigHelper:
-            'İzin listesi yalnızca yapılandırmayı kaydeder ve eşleşen izin kurallarını korur. Eksik kurallar başlatma, yeniden başlatma, ilk yapılandırma veya eşitleme sırasında eklenir. İzin listesi girdilerini düzenlemek veya silmek mevcut kuralları kaldırmaz.',
+            'İzin listesini kaydetmek eksik izin kurallarını ekler ve eşleşen kuralları korur. Liste girdilerini düzenlemek veya silmek mevcut kuralları kaldırmaz.',
         whitelistDeleteConfirm:
             'Yalnızca bu beyaz liste kaydı silinecek. Mevcut güvenlik duvarı kuralları korunacak. Devam edilsin mi?',
         portWhiteListHelper:
@@ -4557,7 +4772,7 @@ const message = {
         whitelistServicePortsHelper:
             'Tek bir port girin (1-65535). Bu işlem hizmetin dinleme portunu değiştirmez. Hizmet ayarlarında port değiştirildiğinde bu beyaz liste kaydı da güncellenir.',
         whitelistSourcesHelper:
-            'IP adreslerini veya CIDR aralıklarını virgül ya da yeni satırla ayırın. Tüm IPv4 ve IPv6 kaynaklarına izin vermek için boş bırakın.',
+            'IP adreslerini veya CIDR aralıklarını virgül ya da yeni satırla ayırın. {0} kaynaklarına izin vermek için boş bırakın.',
         destinationPortPlaceholder: 'örn. 80, 80,443 veya 8080-8089',
         deleteRuleConfirm: '{0} kural silinecek. Devam etmek istiyor musunuz?',
         deleteUsedRuleConfirm:
@@ -7058,16 +7273,16 @@ const message = {
             webhookPreset: 'Ön ayar',
             genericJsonPreset: 'Genel JSON',
             customPreset: 'Özel',
-            webhookUrlSecretHelper: 'Webhook URL şifreli olarak saklanır ve burada görüntülenip düzenlenebilir',
             webhookPublicAddressHelper:
                 'Yalnızca genel ağdan erişilebilen HTTP/HTTPS adresleri desteklenir; yerel, özel ve ayrılmış adresler engellenir',
             customWebhookRecoveryRequired:
-                'Bu yapılandırma geçersiz veya eski bir sürümden geliyor. Webhook URL ve gerekli gizli Header değerlerini yeniden girip kaydedin.',
+                'Kaydedilmiş Webhook yapılandırması okunamıyor. URL ve gerekli hassas başlıkları yeniden girin, ardından test başarılı olduktan sonra kaydedin.',
             clearSecret: 'Temizle',
-            keepSecret: 'Değiştirme',
-            secretCleared: 'Kaydettiğinizde bu gizli değer temizlenecek',
+            keepSecret: 'Kayıtlı değeri geri yükle',
             bodyType: 'Body türü',
             bodyTemplate: 'Body şablonu',
+            formatJson: 'Biçimlendir',
+            jsonFormatTooLarge: 'Biçimlendirilmiş içerik boyut sınırını aşıyor. Orijinal içerik korundu.',
             formFieldName: 'Alan adı',
             formFieldValue: 'Alan değeri',
             addFormField: 'Alan ekle',
@@ -7346,12 +7561,17 @@ const message = {
             storagePoolHelper: 'Depolama havuzu, sanal makine disklerini ve ISO dosyalarını saklar.',
             network: 'Ağ',
             bridgeName: 'Bridge Adı',
+            sourceInterface: 'Ana makine ağ arayüzü',
+            macvtapNetworkHelper:
+                'Sanal makine yerel ağda ayrı bir bilgisayar gibi çalışır. Ana makinenin mevcut IP ayarlarını değiştirmeden diğer cihazlar sanal makinenin IP adresine doğrudan erişebilir. Not: varsayılan olarak ana makine ve sanal makine bu bağlantı üzerinden doğrudan iletişim kuramaz.',
+            macvtapInterfaceHelper:
+                'Hedef yerel ağa bağlı kablolu arayüzü seçin; ana makineyle paylaşılabilir. Sanal makinenin IP adresi ağ tarafından atanır veya sanal makine içinde elle ayarlanır. Ağ, bu arayüzde birden fazla cihaza (birden fazla MAC adresine) izin vermelidir.',
             natNetworkHelper:
-                'VM’ler ana makine üzerinden ağa erişebilir, ancak harici cihazlar genellikle onlara doğrudan erişemez.',
+                'İnternet erişimi gereken veya az sayıda hizmet sunan sanal makineler için uygundur. Sanal makine internete ana makine üzerinden çıkar. Diğer cihazların hizmetlere erişmesi için genellikle ayrıca bağlantı noktası yönlendirmesi yapılandırılmalıdır.',
             bridgeNetworkHelper:
-                'VM’leri ana makinedeki mevcut bir bridge’e (örneğin br0) bağlayın. Ana makinede kullanılmayan ek bir ağ kartı varsa, bunun için bir bridge oluşturup kullanabilirsiniz.',
+                'Sanal makine bir ağ anahtarına bağlı ayrı bir bilgisayar gibi çalışır. Ana makine ve yerel ağdaki diğer cihazlar ona doğrudan erişebilir. Önce ana makinede bir köprü yapılandırın.',
             bridgeNameHelper:
-                'Ana makinede var olan br0 gibi bir Linux bridge seçin. Fiziksel NIC bridge değildir ve docker/libvirt tarafından yönetilen bridge burada seçilemez.',
+                'br0 gibi yapılandırılmış bir köprü seçin. Seçenek yoksa önce ana makinede bir köprü oluşturun. Fiziksel arayüzler ve Docker/libvirt tarafından yönetilen köprüler burada seçilemez.',
             natCIDRHelper: 'CIDR, ağ geçidi ve DHCP aralığı yeni NAT sanal ağı tarafından kullanılır.',
             networkCIDR: 'Ağ CIDR',
             gateway: 'Ağ Geçidi',
@@ -7369,6 +7589,7 @@ const message = {
             available: 'Kullanılabilir',
             vmCount: 'Bağlı VMler',
             usedIPs: 'Kullanılan IPler',
+            usedIPsUnavailable: 'Henüz alınamıyor',
             monitor: 'İzleme',
             monitorNotReady: 'Sanal makine çalışmıyor. İzleme verileri kullanılamıyor.',
             monitorLoadFailed: 'VM izleme verileri alınamadı.',

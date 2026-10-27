@@ -119,15 +119,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref } from 'vue';
-import { UploadFile, UploadFiles, UploadInstance, UploadProps, UploadRawFile } from 'element-plus';
-import {
-    batchCheckFiles,
-    chunkUploadFileData,
-    stopChunkUpload,
-    uploadFileData,
-    type FileUploadRequestConfig,
-} from '@/api/modules/files';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { UploadFile, UploadFiles, UploadInstance, UploadProps, UploadRawFile, genFileId } from 'element-plus';
+import { uploadContainerFile } from '@/api/modules/container';
+import { batchCheckFiles, stopChunkUpload, uploadFileData } from '@/api/modules/files';
+import { CHUNK_SIZE, uploadChunkWithRetry } from '@/utils/chunk-upload';
 import i18n from '@/lang';
 import { MsgError, MsgSuccess, MsgWarning } from '@/utils/message';
 import { Close, Document, UploadFilled } from '@element-plus/icons-vue';
@@ -139,6 +135,7 @@ import { useGlobalStore } from '@/composables/useGlobalStore';
 interface UploadFileProps {
     path: string;
     isAppendOnly?: boolean;
+    containerID?: string;
 }
 
 const uploadRef = ref<UploadInstance>();
@@ -159,6 +156,8 @@ const uploadOverallPercent = computed(() => {
 const open = ref(false);
 const isAppendOnly = ref(false);
 const path = ref();
+const containerID = ref('');
+const targetNode = ref('');
 let uploadHelper = ref('');
 const dialogExistFileRef = ref();
 const abortController = ref<AbortController | null>(null);
@@ -218,23 +217,20 @@ const closePage = () => {
     clearFiles();
     em('close', false);
 };
-const state = reactive({
-    uploadEle: null,
-});
 const uploaderFiles = ref<UploadFiles>([]);
 const hoverIndex = ref<number | null>(null);
 const tmpFiles = ref<UploadFiles>([]);
 const breakFlag = ref(false);
-const CHUNK_SIZE = 1024 * 1024 * 5;
-const MAX_CHUNK_RETRIES = 3;
 
 const upload = (command: string) => {
     if (uploadLocked.value) {
         return;
     }
-    state.uploadEle.webkitdirectory = command == 'dir';
-    uploadRef.value.$el.querySelector('input').value = '';
-    uploadRef.value.$el.querySelector('input').click();
+    const input = uploadRef.value?.$el.querySelector('input[type=file]') as HTMLInputElement | null;
+    if (!input) return;
+    input.webkitdirectory = command === 'dir';
+    input.value = '';
+    input.click();
 };
 
 const removeFile = (index: number) => {
@@ -274,7 +270,7 @@ const handleDrop = async (event: DragEvent) => {
 };
 
 const convertFileToUploadFile = (file: File, path: string): UploadFile => {
-    const uid = Date.now();
+    const uid = genFileId();
 
     const uploadRawFile: UploadRawFile = new File([file], file.name, {
         type: file.type,
@@ -301,12 +297,15 @@ const traverseFileTree = async (item: any, path = '') => {
         return;
     }
     if (item.isFile) {
-        if (tmpFiles.value.length > 1000) {
+        if (uploaderFiles.value.length + tmpFiles.value.length >= 1000) {
             breakFlag.value = true;
             return;
         }
         await new Promise<void>((resolve) => {
             item.file((file: File) => {
+                if (uploaderFiles.value.length + tmpFiles.value.length >= 1000) {
+                    breakFlag.value = true;
+                }
                 if (!breakFlag.value) {
                     tmpFiles.value.push(convertFileToUploadFile(file, path));
                 }
@@ -372,7 +371,14 @@ const handleSuccess: UploadProps['onSuccess'] = (res, file) => {
 };
 
 const submit = async () => {
-    const files = uploaderFiles.value.slice();
+    if (uploadLocked.value) return;
+    const files = containerID.value
+        ? uploaderFiles.value.filter((file) => file.status !== 'success')
+        : uploaderFiles.value.slice();
+    if (containerID.value) {
+        await uploadFile(files, false);
+        return;
+    }
     const fileNamesWithPath = Array.from(
         new Set(files.map((file) => `${path.value}/${file.raw.webkitRelativePath || file.name}`)),
     );
@@ -417,7 +423,8 @@ const uploadFile = async (files: any[], overwrite: boolean) => {
     upLoading.value = true;
     uploadTotalCount.value = files.length;
     const controller = new AbortController();
-    const uploadNode = currentNode.value;
+    const uploadNode = containerID.value ? targetNode.value : currentNode.value;
+    const uploadContainerID = containerID.value;
     abortController.value = controller;
     let successCount = 0;
     try {
@@ -433,10 +440,27 @@ const uploadFile = async (files: any[], overwrite: boolean) => {
 
             let isSuccess = false;
             try {
-                isSuccess =
-                    Number(file.size) === 0
-                        ? await uploadEmptyFile(file, controller, uploadNode, overwrite)
-                        : await uploadChunkedFile(file, controller, uploadNode, overwrite);
+                if (uploadContainerID) {
+                    const data = new FormData();
+                    data.append('containerID', uploadContainerID);
+                    data.append('path', getUploadPath(file));
+                    data.append('file', file.raw, getFilenameFromPath(file.raw.webkitRelativePath || file.name));
+                    await uploadContainerFile(data, {
+                        headers: { CurrentNode: uploadNode },
+                        signal: controller.signal,
+                        skipErrorMessage: true,
+                        timeout: 0,
+                        onUploadProgress: ({ loaded, total }) => {
+                            uploadPercent.value = total ? Math.round((loaded / total) * 100) : 0;
+                        },
+                    });
+                    isSuccess = true;
+                } else {
+                    isSuccess =
+                        Number(file.size) === 0
+                            ? await uploadEmptyFile(file, controller, uploadNode, overwrite)
+                            : await uploadChunkedFile(file, controller, uploadNode, overwrite);
+                }
             } catch (error) {
                 if (!controller.signal.aborted) {
                     MsgError(getErrorMessage(error));
@@ -501,54 +525,6 @@ const cleanupActiveChunkUpload = async () => {
         await stopChunkUpload(active.uploadID, active.node);
     } catch (error) {
         console.error(error);
-    }
-};
-
-const shouldRetryChunkUpload = (error: unknown) => {
-    const item = error as {
-        code?: string | number;
-        data?: { retryable?: boolean };
-        response?: { status?: number };
-    };
-    if (item?.code === 'ERR_CANCELED') {
-        return false;
-    }
-    if (typeof item?.data?.retryable === 'boolean') {
-        return item.data.retryable;
-    }
-    const status = item?.response?.status ?? (typeof item?.code === 'number' ? item.code : undefined);
-    return !status || status === 408 || status === 429 || status >= 500;
-};
-
-const waitForChunkRetry = (attempt: number, signal: AbortSignal) => {
-    return new Promise<void>((resolve) => {
-        if (signal.aborted) {
-            resolve();
-            return;
-        }
-        const timer = window.setTimeout(done, 500 * 2 ** attempt);
-        function done() {
-            window.clearTimeout(timer);
-            signal.removeEventListener('abort', done);
-            resolve();
-        }
-        signal.addEventListener('abort', done, { once: true });
-    });
-};
-
-const uploadChunkWithRetry = async (formData: FormData, config: FileUploadRequestConfig, signal: AbortSignal) => {
-    let retryCount = 0;
-    while (true) {
-        try {
-            await chunkUploadFileData(formData, config);
-            return;
-        } catch (error) {
-            if (signal.aborted || retryCount >= MAX_CHUNK_RETRIES || !shouldRetryChunkUpload(error)) {
-                throw error;
-            }
-            await waitForChunkRetry(retryCount, signal);
-            retryCount++;
-        }
     }
 };
 
@@ -628,6 +604,9 @@ const getFilenameFromPath = (path: string) => {
 };
 
 const acceptParams = (props: UploadFileProps) => {
+    if (uploadLocked.value) return;
+    containerID.value = props.containerID || '';
+    targetNode.value = currentNode.value;
     path.value = props.path;
     isAppendOnly.value = Boolean(props.isAppendOnly);
     open.value = true;
@@ -636,22 +615,19 @@ const acceptParams = (props: UploadFileProps) => {
     uploadCurrentIndex.value = 0;
     uploadHelper.value = '';
     canceling.value = false;
-
-    nextTick(() => {
-        state.uploadEle = document.querySelector('.el-upload__input');
-    });
 };
 
-onMounted(() => {
-    window.addEventListener('beforeunload', (e) => {
-        if (upLoading.value) {
-            if (upLoading.value) {
-                e.preventDefault();
-                e.returnValue = i18n.global.t('file.cancelUploadHelper');
-                return i18n.global.t('file.cancelUploadHelper');
-            }
-        }
-    });
+const beforeUnload = (event: BeforeUnloadEvent) => {
+    if (upLoading.value) {
+        event.preventDefault();
+        event.returnValue = i18n.global.t('file.cancelUploadHelper');
+    }
+};
+onMounted(() => window.addEventListener('beforeunload', beforeUnload));
+onBeforeUnmount(() => {
+    window.removeEventListener('beforeunload', beforeUnload);
+    abortController.value?.abort();
+    void cleanupActiveChunkUpload();
 });
 
 defineExpose({ acceptParams, handleDrop, open });

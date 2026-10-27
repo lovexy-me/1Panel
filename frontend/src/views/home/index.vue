@@ -50,20 +50,12 @@
                                 <el-col :span="6" v-for="item in baseInfo.quickJump" :key="item.name">
                                     <span>{{ $t(item.title, 2) }}</span>
                                     <div class="count">
-                                        <el-tooltip
-                                            v-if="item.alias || item.detail.length > 20"
-                                            :content="item.detail"
-                                            placement="bottom"
-                                        >
-                                            <el-button
-                                                link
-                                                :disabled="!checkPermission('File')"
-                                                type="primary"
-                                                @click="quickJump(item)"
-                                            >
-                                                {{ item.alias || item.detail.substring(0, 18) + '...' }}
-                                            </el-button>
-                                        </el-tooltip>
+                                        <QuickDirectories
+                                            v-if="item.name === 'File'"
+                                            :count="item.detail"
+                                            :disabled="!checkPermission('File')"
+                                            @change="updateQuickDirectoryCount"
+                                        />
                                         <el-button
                                             link
                                             :disabled="!checkPermission(item.name)"
@@ -450,6 +442,7 @@ import SystemStatus from '@/views/home/status/index.vue';
 import AppLauncher from '@/views/home/app/index.vue';
 import VCharts from '@/components/v-charts/index.vue';
 import QuickJump from '@/views/home/quick/index.vue';
+import QuickDirectories from '@/views/home/quick/directories.vue';
 import CardWithHeader from '@/components/card-with-header/index.vue';
 import MarkDownEditor from '@/components/mkdown-editor/index.vue';
 import i18n from '@/lang';
@@ -470,7 +463,7 @@ import {
     updateMemo,
     updateSetting,
 } from '@/api/modules/setting';
-import { routerToFileWithPath, routerToNameWithQuery, routerToPath } from '@/utils/router';
+import { routerToNameWithQuery, routerToPath } from '@/utils/router';
 import { getWelcomePage } from '@/api/modules/auth';
 import {
     clearDashboardCache,
@@ -551,7 +544,8 @@ const welcomeOpen = ref();
 const shadowContainer = ref();
 
 const chartOption = ref('network');
-let timer: NodeJS.Timer | null = null;
+let timer: ReturnType<typeof setInterval> | null = null;
+let initialSampleTimer: ReturnType<typeof setTimeout> | null = null;
 let isInit = ref<boolean>(true);
 let isStatusInit = ref<boolean>(true);
 let isActive = ref(true);
@@ -795,14 +789,16 @@ const onLoadBaseInfo = async (isInit: boolean, range: string) => {
     const res = await loadBaseInfo(searchInfo.ioOption, searchInfo.netOption);
     baseInfo.value = res.data;
     updateCurrentInfo(baseInfo.value.currentInfo);
-    skipNextCurrentInfoDelta.value = true;
-    onLoadCurrentInfo();
+    skipNextCurrentInfoDelta.value = !isInit;
+    if (!isInit) {
+        onLoadCurrentInfo();
+    }
     isStatusInit.value = false;
     statusRef.value?.acceptParams(currentInfo.value, baseInfo.value);
     appRef.value?.acceptParams();
-    if (isInit) {
+    if (isInit && isCurrentActive.value) {
         clearTimer();
-        timer = setInterval(async () => {
+        const refreshCurrentInfo = async () => {
             try {
                 if (!isCurrentActive.value) {
                     throw new Error('jump out');
@@ -814,14 +810,18 @@ const onLoadBaseInfo = async (isInit: boolean, range: string) => {
             } catch {
                 clearTimer();
             }
-        }, 3000);
+        };
+        initialSampleTimer = setTimeout(refreshCurrentInfo, 500);
+        timer = setInterval(refreshCurrentInfo, 3000);
     }
 };
 
+const updateQuickDirectoryCount = (count: number) => {
+    const item = baseInfo.value.quickJump.find((item) => item.name === 'File');
+    if (item) item.detail = String(count);
+};
+
 const quickJump = (item: any) => {
-    if (item.name === 'File') {
-        return routerToFileWithPath(item.detail);
-    }
     return routerToPath(item.router);
 };
 
@@ -850,7 +850,9 @@ const jumpPanel = (row: any) => {
 
 const onLoadCurrentInfo = async () => {
     const res = await loadCurrentInfo(searchInfo.ioOption, searchInfo.netOption);
-    if (skipNextCurrentInfoDelta.value) {
+    const timeInterval =
+        (new Date(res.data.shotTime).getTime() - new Date(currentInfo.value.shotTime).getTime()) / 1000;
+    if (skipNextCurrentInfoDelta.value || !Number.isFinite(timeInterval) || timeInterval <= 0) {
         skipNextCurrentInfoDelta.value = false;
         currentChartInfo.netBytesSent = 0;
         currentChartInfo.netBytesRecv = 0;
@@ -866,7 +868,6 @@ const onLoadCurrentInfo = async () => {
     currentInfo.value.timeSinceUptime = res.data.timeSinceUptime;
     currentInfo.value.runningTime = res.data.runningTime;
 
-    let timeInterval = Number(res.data.uptime - currentInfo.value.uptime) || 3;
     currentChartInfo.netBytesSent =
         res.data.netBytesSent - currentInfo.value.netBytesSent > 0
             ? Number(((res.data.netBytesSent - currentInfo.value.netBytesSent) / 1024 / timeInterval).toFixed(2))
@@ -1146,6 +1147,8 @@ onBeforeRouteUpdate((to, from, next) => {
 const clearTimer = () => {
     clearInterval(Number(timer));
     timer = null;
+    clearTimeout(Number(initialSampleTimer));
+    initialSampleTimer = null;
 };
 
 onMounted(() => {

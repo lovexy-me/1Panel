@@ -23,11 +23,39 @@
                 <SubItem :menuList="routerMenus" :level="0" />
             </el-menu>
         </el-scrollbar>
-        <Collapse :version="version" @open-task="openTask" @refresh="search" />
+        <Collapse
+            ref="nodeSelectorRef"
+            class="node-selector"
+            :version="version"
+            @open-task="openTask"
+            @refresh="search"
+            @user-change="currentUser = $event"
+        />
+        <div class="user-actions" :class="{ 'is-collapsed': isCollapse }">
+            <button
+                v-if="currentUser"
+                type="button"
+                class="user-entry"
+                :aria-label="$t('xpack.user.userInfo') + ' ' + currentUser.name"
+                @click="nodeSelectorRef?.openUserInfo()"
+            >
+                <SvgIcon class="icon" iconName="p-gerenzhongxin1" />
+                <span v-if="!isCollapse" class="user-name">{{ currentUser.name }}</span>
+            </button>
+            <button
+                type="button"
+                class="user-entry logout-entry"
+                :aria-label="$t('header.exitSystem')"
+                @click="nodeSelectorRef?.logout()"
+            >
+                <SvgIcon class="icon" iconName="p-tuichudenglu3" />
+            </button>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import { applyPanelCacheSettings } from '@/utils/panel-cache';
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { RouteRecordRaw, useRoute, useRouter } from 'vue-router';
 import { loadingSvg } from '@/utils/svg';
@@ -40,12 +68,15 @@ import { getSettingBaseInfo } from '@/api/modules/setting';
 import PrimaryMenu from '@/assets/images/menu-bg.svg?component';
 import { hasPermissionMetaAccess, hasRouteRoleAccess } from '@/utils/rbac';
 import { useGlobalStore } from '@/composables/useGlobalStore';
+import type { Login } from '@/api/interface/auth';
 
 const route = useRoute();
 const router = useRouter();
 const menuStore = MenuStore();
 const { currentNode, isAdmin, menuAccordion, permissions } = useGlobalStore();
 const version = ref();
+const nodeSelectorRef = ref<InstanceType<typeof Collapse>>();
+const currentUser = ref<Login.AuthInfo>();
 
 const activeMenu = computed(() => {
     const { meta, path } = route;
@@ -111,6 +142,7 @@ const search = async () => {
         settingInfo = res.data;
         version.value = res.data.systemVersion;
         menuAccordion.value = res.data.menuAccordion === 'Enable';
+        applyPanelCacheSettings(res.data.panelCache);
     } catch (error) {
         version.value = '';
     }
@@ -324,8 +356,14 @@ watch(
     height: 100%;
     background: var(--panel-menu-bg-color) no-repeat top;
 
+    .logo,
+    .node-selector {
+        flex-shrink: 0;
+    }
+
     .el-scrollbar {
         flex: 1;
+        min-height: 0;
         .el-menu {
             overflow: auto;
             overflow-x: hidden;
@@ -336,5 +374,64 @@ watch(
 
 .ico {
     height: 20px !important;
+}
+
+.user-actions {
+    display: flex;
+    flex-shrink: 0;
+    border-top: 1px solid var(--panel-footer-border);
+
+    &.is-collapsed .user-entry {
+        justify-content: center;
+        padding: 0;
+    }
+
+    &.is-collapsed .logout-entry {
+        flex: 1;
+    }
+}
+
+.user-entry {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    height: 48px;
+    padding: 0 0 0 25px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--panel-main-bg-color-1);
+    font-family: inherit;
+    font-size: var(--el-font-size-base);
+    line-height: 1.5;
+    text-align: left;
+    cursor: pointer;
+
+    .icon {
+        flex-shrink: 0;
+        font-size: 8px;
+    }
+
+    .user-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &:hover,
+    &:focus-visible {
+        color: var(--el-color-primary);
+        background: var(--el-menu-item-bg-color);
+    }
+}
+.logout-entry {
+    flex: 0 0 42px;
+    justify-content: center;
+    padding: 0;
+    border-left: 1px solid var(--panel-footer-border);
 }
 </style>

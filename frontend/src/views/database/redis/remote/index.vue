@@ -73,8 +73,9 @@
 </template>
 
 <script lang="ts" setup>
+import { useSearchState } from '@/utils/search-reset';
 import { dateFormat } from '@/utils/date';
-import { onMounted, reactive, ref } from 'vue';
+import { toRef, onMounted, reactive, ref } from 'vue';
 import { deleteCheckDatabase, searchDatabases } from '@/api/modules/database';
 import AppResources from '@/views/database/redis/check/index.vue';
 import OperateDialog from '@/views/database/redis/remote/operate/index.vue';
@@ -90,14 +91,18 @@ const deleteRef = ref();
 
 const data = ref();
 const paginationConfig = reactive({
-    cacheSizeKey: 'redis-remote-page-size',
     currentPage: 1,
-    pageSize: Number(localStorage.getItem('redis-remote-page-size')) || 20,
+    pageSize: 20,
     total: 0,
     orderBy: 'createdAt',
     order: 'null',
 });
 const searchName = ref();
+useSearchState(
+    'database/redis/remote/index',
+    { search: searchName, page: toRef(paginationConfig, 'currentPage'), pageSize: toRef(paginationConfig, 'pageSize') },
+    { onRevisit: () => search() },
+);
 
 const search = async (column?: any) => {
     paginationConfig.orderBy = column?.order ? column.prop : paginationConfig.orderBy;

@@ -31,12 +31,12 @@ var vllmMetricsClient = &http.Client{
 	CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse },
 }
 
-func (m *MonitorService) LoadVLLMMonitorData(req dto.MonitorVLLMSearch) (dto.MonitorVLLMData, error) {
+func (m *MonitorService) LoadVLLMMonitorData(ctx context.Context, req dto.MonitorVLLMSearch) (dto.MonitorVLLMData, error) {
 	data := dto.MonitorVLLMData{Points: []model.MonitorVLLM{}}
 	if !req.EndTime.After(req.StartTime) {
 		return data, fmt.Errorf("invalid vLLM history request")
 	}
-	install, err := appInstallRepo.GetFirst(repo.WithByID(req.AppInstallID))
+	install, err := appInstallRepo.GetFirstByCtx(ctx, repo.WithByID(req.AppInstallID))
 	if err != nil {
 		return data, err
 	}
@@ -49,23 +49,34 @@ func (m *MonitorService) LoadVLLMMonitorData(req dto.MonitorVLLMSearch) (dto.Mon
 		return data, err
 	}
 	req.StartTime, req.EndTime = req.StartTime.In(loc), req.EndTime.In(loc)
-	data.SampleCount, err = vllmMonitorRepo.Count(req.AppInstallID, req.StartTime, req.EndTime)
+	data.SampleCount, err = vllmMonitorRepo.Count(ctx, req.AppInstallID, req.StartTime, req.EndTime)
 	if err != nil || data.SampleCount == 0 {
 		return data, err
 	}
 	if data.SampleCount > 1200 {
 		data.BucketSeconds = (req.EndTime.Unix() - req.StartTime.Unix() + 600) / 600
 	}
-	points, err := vllmMonitorRepo.History(req.AppInstallID, req.StartTime, req.EndTime, data.BucketSeconds, req.Aggregation)
+	points, err := vllmMonitorRepo.History(ctx, req.AppInstallID, req.StartTime, req.EndTime, data.BucketSeconds, req.Aggregation, req.Group)
 	if err != nil {
 		return data, err
 	}
+	for i := range points {
+		points[i].MonitorVLLM.CompletedRequests = points[i].CompletedRequests
+	}
 	if data.BucketSeconds > 0 {
-		if req.Aggregation != "max" {
-			for i := range points {
-				if err := vllm.AggregateHistograms(points[i].HistogramSamples, &points[i].MonitorVLLM); err != nil {
-					return data, err
-				}
+		aggregates := map[int64]*vllm.HistoryAccumulator{}
+		err = vllmMonitorRepo.WalkDeltas(ctx, req.AppInstallID, req.StartTime, req.EndTime, data.BucketSeconds, req.Aggregation, req.Group, func(bucket int64, histograms, requests string) error {
+			if aggregates[bucket] == nil {
+				aggregates[bucket] = &vllm.HistoryAccumulator{}
+			}
+			return aggregates[bucket].Add(histograms, requests, req.Aggregation, req.Group)
+		})
+		if err != nil {
+			return data, err
+		}
+		for i := range points {
+			if aggregate := aggregates[points[i].Bucket]; aggregate != nil {
+				aggregate.Apply(&points[i].MonitorVLLM, req.Aggregation)
 			}
 		}
 		next := 0
@@ -83,18 +94,29 @@ func (m *MonitorService) LoadVLLMMonitorData(req dto.MonitorVLLMSearch) (dto.Mon
 			data.Points = append(data.Points, point)
 		}
 	} else {
-		setting, err := settingRepo.GetValueByKey("VLLMMonitorInterval")
-		if err != nil {
-			return data, err
-		}
-		intervalSeconds, err := strconv.Atoi(setting)
-		if err != nil || intervalSeconds <= 0 {
-			return data, fmt.Errorf("invalid vLLM monitoring interval: %s", setting)
-		}
-		interval := time.Duration(intervalSeconds) * time.Second
 		for i, point := range points {
-			if i > 0 && point.CreatedAt.Sub(points[i-1].CreatedAt) > 2*interval {
-				data.Points = append(data.Points, model.MonitorVLLM{CreatedAt: points[i-1].CreatedAt.Add(interval), AppInstallID: req.AppInstallID})
+			if err := ctx.Err(); err != nil {
+				return data, err
+			}
+			var aggregate vllm.HistoryAccumulator
+			if err := aggregate.Add(point.HistogramDeltas, point.RequestDeltas, "max", req.Group); err != nil {
+				return data, err
+			}
+			aggregate.Apply(&point.MonitorVLLM, "max")
+			if i > 0 {
+				previous := points[i-1]
+				interval := time.Duration(max(previous.SampleIntervalSeconds, point.SampleIntervalSeconds)) * time.Second
+				if interval == 0 {
+					if i > 1 {
+						interval = previous.CreatedAt.Sub(points[i-2].CreatedAt)
+					}
+					if i+1 < len(points) {
+						interval = max(interval, points[i+1].CreatedAt.Sub(point.CreatedAt))
+					}
+				}
+				if interval > 0 && point.CreatedAt.Sub(previous.CreatedAt) > 2*interval {
+					data.Points = append(data.Points, model.MonitorVLLM{CreatedAt: previous.CreatedAt.Add(interval), AppInstallID: req.AppInstallID})
+				}
 			}
 			data.Points = append(data.Points, point.MonitorVLLM)
 		}
@@ -102,31 +124,30 @@ func (m *MonitorService) LoadVLLMMonitorData(req dto.MonitorVLLMSearch) (dto.Mon
 	return data, nil
 }
 
-func (m *MonitorService) LoadVLLMCurrent(ctx context.Context, req dto.MonitorVLLMCurrent) (model.MonitorVLLM, error) {
+func (m *MonitorService) LoadVLLMCurrent(ctx context.Context, req dto.MonitorVLLMCurrent) (dto.MonitorVLLMCurrentData, error) {
 	install, err := appInstallRepo.GetFirst(repo.WithByID(req.AppInstallID))
 	if err != nil {
-		return model.MonitorVLLM{}, err
+		return dto.MonitorVLLMCurrentData{}, err
 	}
 	if install.App.Key != "vllm" {
-		return model.MonitorVLLM{}, fmt.Errorf("not a vLLM installation")
+		return dto.MonitorVLLMCurrentData{}, fmt.Errorf("not a vLLM installation")
 	}
-	previous, err := collectVLLMMetrics(ctx, install, model.MonitorVLLM{})
+	point, err := collectVLLMMetrics(ctx, install, model.MonitorVLLM{})
+	data := dto.MonitorVLLMCurrentData{MonitorVLLM: point}
 	if err != nil {
 		global.LOG.Debugf("Collect vLLM metrics on port %d failed: %v", install.HttpPort, err)
-		return previous, nil
+		return data, nil
 	}
-	timer := time.NewTimer(time.Second)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-		return model.MonitorVLLM{}, ctx.Err()
-	case <-timer.C:
+	if err := json.Unmarshal([]byte(point.RawMetrics), &data.Metrics); err != nil {
+		return data, err
 	}
-	point, err := collectVLLMMetrics(ctx, install, previous)
-	if err != nil {
-		global.LOG.Debugf("Collect vLLM metrics on port %d failed: %v", install.HttpPort, err)
+	for name := range data.Metrics {
+		if name == "request_prompt_tokens_sum" || name == "request_prompt_tokens_count" ||
+			(!strings.HasSuffix(name, "_total") && !strings.HasSuffix(name, "_sum") && !strings.HasSuffix(name, "_count")) {
+			delete(data.Metrics, name)
+		}
 	}
-	return point, nil
+	return data, nil
 }
 
 func (m *MonitorService) CleanVLLMMonitor(req dto.MonitorVLLMClean) error {
@@ -148,7 +169,7 @@ func StartVLLMMonitor(interval string) error {
 		return fmt.Errorf("invalid vLLM monitoring interval: %s", interval)
 	}
 	service := &MonitorService{}
-	job := cron.NewChain(cron.Recover(cron.DefaultLogger)).Then(cron.FuncJob(service.saveVLLMData))
+	job := cron.NewChain(cron.Recover(cron.DefaultLogger)).Then(cron.FuncJob(func() { service.saveVLLMData(seconds) }))
 	id, err := global.Cron.AddFunc(fmt.Sprintf("@every %ds", seconds), func() { go job.Run() })
 	if err != nil {
 		return err
@@ -160,7 +181,7 @@ func StartVLLMMonitor(interval string) error {
 	return nil
 }
 
-func (m *MonitorService) saveVLLMData() {
+func (m *MonitorService) saveVLLMData(intervalSeconds int) {
 	if !vllmMonitorMutex.TryLock() {
 		return
 	}
@@ -212,6 +233,7 @@ func (m *MonitorService) saveVLLMData() {
 				return err
 			}
 			point, err := collectVLLMMetrics(context.Background(), install, previous)
+			point.SampleIntervalSeconds = intervalSeconds
 			if err != nil {
 				global.LOG.Debugf("Collect vLLM metrics for %s failed: %v", install.Name, err)
 			}

@@ -38,6 +38,8 @@
             </template>
             <template #main>
                 <ComplexTable
+                    :selection-context="() => [searchName]"
+                    row-key="id"
                     :pagination-config="paginationConfig"
                     v-model:selects="selects"
                     :data="data"
@@ -79,7 +81,8 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from 'vue';
+import { useSearchState } from '@/utils/search-reset';
+import { toRef, reactive, ref } from 'vue';
 import { dateFormat, getCurrentDateFormatted } from '@/utils/date';
 import { downloadWithContent } from '@/utils/file';
 import { Container } from '@/api/interface/container';
@@ -102,12 +105,16 @@ const isActive = ref(false);
 const isExist = ref(false);
 
 const paginationConfig = reactive({
-    cacheSizeKey: 'compose-template-page-size',
     currentPage: 1,
-    pageSize: Number(localStorage.getItem('compose-template-page-size')) || 20,
+    pageSize: 20,
     total: 0,
 });
 const searchName = ref();
+useSearchState(
+    'container/template/index',
+    { search: searchName, page: toRef(paginationConfig, 'currentPage'), pageSize: toRef(paginationConfig, 'pageSize') },
+    { onRevisit: () => search() },
+);
 
 const search = async () => {
     if (!isActive.value || !isExist.value) {

@@ -43,6 +43,10 @@ type IDashboardService interface {
 
 	LoadQuickOptions() []dto.QuickJump
 	ChangeQuick(req dto.ChangeQuicks) error
+	ListQuickDirectories() ([]model.QuickDirectory, error)
+	CreateQuickDirectory(req dto.QuickDirectoryCreate) (*model.QuickDirectory, error)
+	UpdateQuickDirectory(req dto.QuickDirectoryUpdate) (*model.QuickDirectory, error)
+	DeleteQuickDirectory(req dto.QuickDirectoryDelete) error
 
 	LoadAppLauncher(ctx *gin.Context) ([]dto.AppLauncher, error)
 	ChangeShow(req dto.SettingUpdate) error
@@ -242,7 +246,7 @@ func (u *DashboardService) LoadCurrentInfo(ioOption string, netOption string) *d
 	currentInfo.SwapMemoryUsed = swapInfo.Used
 	currentInfo.SwapMemoryUsedPercent = swapInfo.UsedPercent
 
-	currentInfo.DiskData = loadDiskInfo()
+	currentInfo.DiskData = loadDiskInfo(false)
 	currentInfo.GPUData, currentInfo.NPUData, currentInfo.XPUData = loadAcceleratorInfo()
 
 	if ioOption == "all" {
@@ -397,16 +401,15 @@ func (u *DashboardService) LoadQuickOptions() []dto.QuickJump {
 }
 func (u *DashboardService) ChangeQuick(req dto.ChangeQuicks) error {
 	showCount := 0
-	var quicks []model.QuickJump
+	quicks := make([]model.QuickJump, 0, len(req.Quicks))
 	for _, item := range req.Quicks {
-		var quick model.QuickJump
 		if item.IsShow {
 			showCount++
 		}
-		if err := copier.Copy(&quick, &item); err != nil {
-			return err
-		}
-		quicks = append(quicks, quick)
+		quicks = append(quicks, model.QuickJump{
+			BaseModel: model.BaseModel{ID: item.ID},
+			IsShow:    item.IsShow,
+		})
 	}
 	if showCount == 0 {
 		return buserr.New("ErrMinQuickJump")
@@ -455,26 +458,9 @@ type diskInfo struct {
 	Device string
 }
 
-func loadDiskInfo() []dto.DiskInfo {
+func loadDiskInfo(forceRefresh bool) []dto.DiskInfo {
 	var datas []dto.DiskInfo
-	cmdMgr := cmd.NewCommandMgr(cmd.WithTimeout(2 * time.Second))
-	format := `NR>1 && !/tmpfs|snap\/core|udev/ {printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $1, $2, $3, $4, $5, $6, $7}`
-	stdout, err := cmdMgr.RunPipe(
-		cmd.PipeCommand{Name: "df", Args: []string{"-hT", "-P"}},
-		cmd.PipeCommand{Name: "awk", Args: []string{format}},
-	)
-	if err != nil {
-		global.LOG.Errorf("load disk info with df -hT -P failed, err: %v", err)
-		cmdMgr2 := cmd.NewCommandMgr(cmd.WithTimeout(1 * time.Second))
-		stdout, err = cmdMgr2.RunPipe(
-			cmd.PipeCommand{Name: "df", Args: []string{"-lhT", "-P"}},
-			cmd.PipeCommand{Name: "awk", Args: []string{format}},
-		)
-		if err != nil {
-			global.LOG.Errorf("load disk info with df -lhT -P failed, err: %v", err)
-			return datas
-		}
-	}
+	stdout := loadDiskMounts()
 	lines := strings.Split(stdout, "\n")
 
 	var mounts []diskInfo
@@ -522,43 +508,22 @@ func loadDiskInfo() []dto.DiskInfo {
 			itemData.Type = mount.Type
 			itemData.Device = mount.Device
 
-			type diskResult struct {
-				state *disk.UsageStat
-				err   error
+			state, err := loadDiskUsageWithTimeout(mount.Mount, forceRefresh)
+			if err != nil {
+				global.LOG.Errorf("load disk info from %s failed, err: %v", mount.Mount, err)
+			} else {
+				itemData.Total = state.Total
+				itemData.Free = state.Free
+				itemData.Used = state.Used
+				itemData.UsedPercent = state.UsedPercent
+				itemData.InodesTotal = state.InodesTotal
+				itemData.InodesUsed = state.InodesUsed
+				itemData.InodesFree = state.InodesFree
+				itemData.InodesUsedPercent = state.InodesUsedPercent
 			}
-			resultCh := make(chan diskResult, 1)
-
-			go func() {
-				state, err := psutil.DISK.GetUsage(mount.Mount, false)
-				resultCh <- diskResult{state: state, err: err}
-			}()
-
-			select {
-			case <-time.After(5 * time.Second):
-				mu.Lock()
-				datas = append(datas, itemData)
-				mu.Unlock()
-				global.LOG.Errorf("load disk info from %s failed, err: timeout", mount.Mount)
-			case result := <-resultCh:
-				if result.err != nil {
-					mu.Lock()
-					datas = append(datas, itemData)
-					mu.Unlock()
-					global.LOG.Errorf("load disk info from %s failed, err: %v", mount.Mount, result.err)
-					return
-				}
-				itemData.Total = result.state.Total
-				itemData.Free = result.state.Free
-				itemData.Used = result.state.Used
-				itemData.UsedPercent = result.state.UsedPercent
-				itemData.InodesTotal = result.state.InodesTotal
-				itemData.InodesUsed = result.state.InodesUsed
-				itemData.InodesFree = result.state.InodesFree
-				itemData.InodesUsedPercent = result.state.InodesUsedPercent
-				mu.Lock()
-				datas = append(datas, itemData)
-				mu.Unlock()
-			}
+			mu.Lock()
+			datas = append(datas, itemData)
+			mu.Unlock()
 		}(mounts[i])
 	}
 	wg.Wait()
@@ -567,6 +532,69 @@ func loadDiskInfo() []dto.DiskInfo {
 		return datas[i].Path < datas[j].Path
 	})
 	return datas
+}
+
+var diskMountsMu sync.Mutex
+
+func loadDiskMounts() string {
+	if !diskMountsMu.TryLock() {
+		return ""
+	}
+	resultCh := make(chan string, 1)
+	go func() {
+		var stdout string
+		defer func() {
+			diskMountsMu.Unlock()
+			resultCh <- stdout
+		}()
+		cmdMgr := cmd.NewCommandMgr(cmd.WithTimeout(2 * time.Second))
+		format := `NR>1 && !/tmpfs|snap\/core|udev/ {printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $1, $2, $3, $4, $5, $6, $7}`
+		output, err := cmdMgr.RunPipe(
+			cmd.PipeCommand{Name: "df", Args: []string{"-hT", "-P"}},
+			cmd.PipeCommand{Name: "awk", Args: []string{format}},
+		)
+		if err != nil {
+			global.LOG.Errorf("load disk info with df -hT -P failed, err: %v", err)
+			cmdMgr2 := cmd.NewCommandMgr(cmd.WithTimeout(1 * time.Second))
+			output, err = cmdMgr2.RunPipe(
+				cmd.PipeCommand{Name: "df", Args: []string{"-lhT", "-P"}},
+				cmd.PipeCommand{Name: "awk", Args: []string{format}},
+			)
+			if err != nil {
+				global.LOG.Errorf("load disk info with df -lhT -P failed, err: %v", err)
+				return
+			}
+		}
+
+		stdout = output
+	}()
+	timer := time.NewTimer(3 * time.Second)
+	defer timer.Stop()
+	select {
+	case stdout := <-resultCh:
+		return stdout
+	case <-timer.C:
+		global.LOG.Error("load disk mounts timed out; df collection is still running")
+		return ""
+	}
+}
+
+func loadDiskUsageWithTimeout(path string, forceRefresh bool) (*disk.UsageStat, error) {
+	type diskResult struct {
+		state *disk.UsageStat
+		err   error
+	}
+	resultCh := make(chan diskResult, 1)
+	go func() {
+		state, err := psutil.DISK.GetUsage(path, forceRefresh)
+		resultCh <- diskResult{state: state, err: err}
+	}()
+	select {
+	case <-time.After(5 * time.Second):
+		return nil, fmt.Errorf("load disk usage from %s: timeout", path)
+	case result := <-resultCh:
+		return result.state, result.err
+	}
 }
 
 func loadAcceleratorInfo() ([]dto.GPUInfo, []dto.NPUInfo, []dto.XPUInfo) {
@@ -681,6 +709,13 @@ func loadQuickJump(base *dto.DashboardBase) {
 	quicks := launcherRepo.ListQuickJump(false)
 	for i := 0; i < len(quicks); i++ {
 		switch quicks[i].Name {
+		case "File":
+			count, err := launcherRepo.CountQuickDirectories()
+			if err != nil {
+				global.LOG.Errorf("load quick directory count: %v", err)
+			}
+			quicks[i].Detail = fmt.Sprintf("%d", count)
+			quicks[i].Alias = ""
 		case "Agent":
 			quicks[i].Detail = fmt.Sprintf("%d", base.AgentNumber)
 		case "Website":

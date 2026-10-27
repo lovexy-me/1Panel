@@ -55,8 +55,8 @@ type IMonitorService interface {
 
 	LoadIOOptions() []string
 	LoadNetworkOptions() []string
-	LoadVLLMMonitorData(req dto.MonitorVLLMSearch) (dto.MonitorVLLMData, error)
-	LoadVLLMCurrent(ctx context.Context, req dto.MonitorVLLMCurrent) (model.MonitorVLLM, error)
+	LoadVLLMMonitorData(ctx context.Context, req dto.MonitorVLLMSearch) (dto.MonitorVLLMData, error)
+	LoadVLLMCurrent(ctx context.Context, req dto.MonitorVLLMCurrent) (dto.MonitorVLLMCurrentData, error)
 	CleanVLLMMonitor(req dto.MonitorVLLMClean) error
 	LoadGPUOptions() dto.MonitorGPUOptions
 	LoadGPUMonitorData(req dto.MonitorGPUSearch) (dto.MonitorGPUData, error)

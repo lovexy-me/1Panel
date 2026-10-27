@@ -26,6 +26,8 @@
             </template>
             <template #main>
                 <ComplexTable
+                    :selection-context="() => [searchName]"
+                    row-key="id"
                     :pagination-config="paginationConfig"
                     v-model:selects="selects"
                     :data="data"
@@ -93,9 +95,10 @@
 </template>
 
 <script lang="ts" setup>
+import { useSearchState } from '@/utils/search-reset';
 import CreateDialog from '@/views/container/network/create/index.vue';
 import DetailDrawer from '@/views/container/network/detail/index.vue';
-import { reactive, ref } from 'vue';
+import { toRef, reactive, ref } from 'vue';
 import { dateFormat } from '@/utils/date';
 import { newUUID } from '@/utils/id';
 import { deleteNetwork, searchNetwork, inspect, containerPrune } from '@/api/modules/container';
@@ -112,12 +115,16 @@ const taskLogRef = ref();
 const data = ref();
 const selects = ref<any>([]);
 const paginationConfig = reactive({
-    cacheSizeKey: 'container-network-page-size',
     currentPage: 1,
-    pageSize: Number(localStorage.getItem('container-network-page-size')) || 20,
+    pageSize: 20,
     total: 0,
 });
 const searchName = ref();
+useSearchState(
+    'container/network/index',
+    { search: searchName, page: toRef(paginationConfig, 'currentPage'), pageSize: toRef(paginationConfig, 'pageSize') },
+    { onRevisit: () => search() },
+);
 
 const opRef = ref();
 const isActive = ref(false);

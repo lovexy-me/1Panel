@@ -8,6 +8,7 @@ import (
 	"maps"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -891,16 +892,52 @@ func handleMap(params map[string]interface{}, envParams map[string]string) {
 	}
 }
 
+func appDownloadURL(rawURL, version string) (string, error) {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	query := parsedURL.Query()
+	query.Set("v", version)
+	parsedURL.RawQuery = query.Encode()
+	return parsedURL.String(), nil
+}
+
+func currentAppDownloadURL(rawURL string) (string, error) {
+	storeVersion, err := settingRepo.GetValueByKey("AppStoreLastModified")
+	if err != nil {
+		return "", err
+	}
+	return appDownloadURL(rawURL, storeVersion)
+}
+
 func downloadApp(app model.App, appDetail model.AppDetail, appInstall *model.AppInstall, logger *logrus.Logger) (err error) {
 	if app.IsLocalApp() || app.IsCustomApp() {
 		return nil
 	}
+	defer func() {
+		if err != nil && appInstall != nil {
+			appInstall.Status = constant.StatusDownloadErr
+			appInstall.Message = err.Error()
+		}
+	}()
 	appResourceDir := path.Join(global.Dir.AppResourceDir, app.Resource)
 	appDownloadDir := app.GetAppResourcePath()
 	appVersionDir := path.Join(appDownloadDir, appDetail.Version)
 	fileOp := files.NewFileOp()
+	storeVersion, err := settingRepo.GetValueByKey("AppStoreLastModified")
+	if err != nil {
+		return err
+	}
+	cacheVersionPath := path.Join(appVersionDir, ".1panel-appstore-version")
 	if !appDetail.Update && fileOp.Stat(appVersionDir) {
-		return
+		if cachedVersion, readErr := os.ReadFile(cacheVersionPath); readErr == nil && string(cachedVersion) == storeVersion {
+			return nil
+		}
+	}
+	downloadURL, err := appDownloadURL(appDetail.DownloadUrl, storeVersion)
+	if err != nil {
+		return err
 	}
 	if !fileOp.Stat(appDownloadDir) {
 		_ = fileOp.CreateDir(appDownloadDir, constant.DirPerm)
@@ -909,23 +946,14 @@ func downloadApp(app model.App, appDetail model.AppDetail, appInstall *model.App
 		_ = fileOp.CreateDir(appVersionDir, constant.DirPerm)
 	}
 	if logger == nil {
-		global.LOG.Infof("download app [%s] from %s", app.Name, appDetail.DownloadUrl)
+		global.LOG.Infof("download app [%s] from %s", app.Name, downloadURL)
 	} else {
-		logger.Printf("download app [%s] from %s", app.Name, appDetail.DownloadUrl)
+		logger.Printf("download app [%s] from %s", app.Name, downloadURL)
 	}
 
 	filePath := path.Join(appVersionDir, app.Key+"-"+appDetail.Version+".tar.gz")
 
-	defer func() {
-		if err != nil {
-			if appInstall != nil {
-				appInstall.Status = constant.StatusDownloadErr
-				appInstall.Message = err.Error()
-			}
-		}
-	}()
-
-	if err = files.DownloadFileWithProxy(appDetail.DownloadUrl, filePath); err != nil {
+	if err = files.DownloadFileWithProxy(downloadURL, filePath); err != nil {
 		if logger == nil {
 			global.LOG.Errorf("download app [%s] error %v", app.Name, err)
 		} else {
@@ -942,6 +970,9 @@ func downloadApp(app model.App, appDetail model.AppDetail, appInstall *model.App
 		return
 	}
 	_ = fileOp.DeleteFile(filePath)
+	if err = os.WriteFile(cacheVersionPath, []byte(storeVersion), constant.FilePerm); err != nil {
+		return err
+	}
 	appDetail.Update = false
 	_ = appDetailRepo.Update(context.Background(), appDetail)
 	return
@@ -1406,9 +1437,8 @@ func handleErr(install model.AppInstall, err error, out string) error {
 }
 
 func doNotNeedSync(installed model.AppInstall) bool {
-	return installed.Status == constant.StatusInstalling || installed.Status == constant.StatusRebuilding || installed.Status == constant.StatusUpgrading ||
-		installed.Status == constant.StatusSyncing || installed.Status == constant.StatusUninstalling || installed.Status == constant.StatusInstallErr ||
-		installed.Status == constant.StatusStarting || installed.Status == constant.StatusRestarting || installed.Status == constant.StatusWaiting
+	return appInstallOperationPending(installed.Status) || installed.Status == constant.StatusSyncing ||
+		installed.Status == constant.StatusInstallErr || installed.Status == constant.StatusUpgradeErr || installed.Status == constant.StatusUpErr
 }
 
 func synAppInstall(containers map[string]container.Summary, appInstall *model.AppInstall, force bool) {
@@ -1502,6 +1532,11 @@ func handleInstalled(appInstallList []model.AppInstall, updated, sync, checkUpda
 	}
 
 	for _, installed := range appInstallList {
+		if sync && appInstallOperationPending(installed.Status) {
+			if err := syncAppInstallStatus(&installed, false); err != nil {
+				return nil, err
+			}
+		}
 		if updated && ignoreUpdate(installed) {
 			continue
 		}
@@ -1567,11 +1602,14 @@ func handleInstalled(appInstallList []model.AppInstall, updated, sync, checkUpda
 
 		var versions []string
 		for _, appDetail := range details {
+			if !isAIGatewayUpgradeVersionAllowed(installed.App.Key, installed.Version, appDetail.Version) {
+				continue
+			}
 			ignores, _ := appIgnoreUpgradeRepo.List(runtimeRepo.WithDetailId(appDetail.ID), appIgnoreUpgradeRepo.WithScope("version"))
 			if len(ignores) > 0 {
 				continue
 			}
-			if common.IsCrossVersion(installed.Version, appDetail.Version) && !installed.App.CrossVersionUpdate {
+			if isCrossAppVersion(installed.App.Key, installed.Version, appDetail.Version) && !installed.App.CrossVersionUpdate {
 				continue
 			}
 			versions = append(versions, appDetail.Version)
@@ -1586,7 +1624,7 @@ func handleInstalled(appInstallList []model.AppInstall, updated, sync, checkUpda
 			continue
 		}
 
-		versions = common.GetSortedVersions(versions)
+		versions = sortAppVersions(installed.App.Key, versions)
 		lastVersion := versions[0]
 
 		if installed.App.Key == constant.AppMysql || installed.App.Key == constant.AppMysqlCluster {
@@ -1601,10 +1639,10 @@ func handleInstalled(appInstallList []model.AppInstall, updated, sync, checkUpda
 			}
 		}
 
-		if common.IsCrossVersion(installed.Version, lastVersion) {
+		if isCrossAppVersion(installed.App.Key, installed.Version, lastVersion) {
 			installDTO.CanUpdate = installed.App.CrossVersionUpdate
 		} else {
-			installDTO.CanUpdate = common.CompareVersion(lastVersion, installed.Version)
+			installDTO.CanUpdate = isNewerAppVersion(installed.App.Key, lastVersion, installed.Version)
 		}
 
 		if updated {
@@ -2275,7 +2313,12 @@ func getAppVersions(key string, details []model.AppDetail) []string {
 		}
 		versionsRaw = append(versionsRaw, detail.Version)
 	}
-	versions = common.GetSortedVersions(versionsRaw)
+	if isAIGatewayApp(key) {
+		sortAIGatewayVersions(versionsRaw)
+		versions = versionsRaw
+	} else {
+		versions = sortAppVersions(key, versionsRaw)
+	}
 	if hasLatest {
 		versions = append([]string{latestVersion}, versions...)
 	}

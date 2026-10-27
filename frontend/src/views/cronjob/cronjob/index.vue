@@ -45,14 +45,7 @@
                 <TableViewSwitch v-model="viewMode" storage-key="cronjob" />
                 <el-select v-model="searchGroupID" @change="search()" clearable class="p-w-200">
                     <template #prefix>{{ $t('commons.table.group') }}</template>
-                    <div v-for="item in groupOptions" :key="item.id">
-                        <el-option
-                            v-if="item.name === 'Default'"
-                            :label="$t('commons.table.default')"
-                            :value="item.id"
-                        />
-                        <el-option v-else :label="item.name" :value="item.id" />
-                    </div>
+                    <el-option v-for="item in groupOptions" :key="item.id" :label="item.name" :value="item.id" />
                 </el-select>
                 <TableSearch @search="search()" v-model:searchName="searchName" />
                 <TableRefresh @search="search()" />
@@ -60,6 +53,8 @@
             </template>
             <template #main>
                 <ComplexTable
+                    :selection-context="() => [searchName, searchGroupID]"
+                    row-key="id"
                     :pagination-config="paginationConfig"
                     :default-sort="
                         paginationConfig.order !== 'null'
@@ -102,16 +97,14 @@
                                 @change="updateGroup(row)"
                             >
                                 <template #read>
-                                    {{ row.groupBelong === 'Default' ? $t('commons.table.default') : row.groupBelong }}
+                                    {{ row.groupBelong }}
                                 </template>
-                                <div v-for="item in groupOptions" :key="item.id">
-                                    <el-option
-                                        v-if="item.name === 'Default'"
-                                        :label="$t('commons.table.default')"
-                                        :value="item.id"
-                                    />
-                                    <el-option v-else :label="item.name" :value="item.id" />
-                                </div>
+                                <el-option
+                                    v-for="item in groupOptions"
+                                    :key="item.id"
+                                    :label="item.name"
+                                    :value="item.id"
+                                />
                             </fu-select-rw-switch>
                         </template>
                     </el-table-column>
@@ -270,10 +263,11 @@
 </template>
 
 <script lang="ts" setup>
+import { useSearchState } from '@/utils/search-reset';
 import Records from '@/views/cronjob/cronjob/record/index.vue';
 import Backups from '@/views/cronjob/cronjob/backup/index.vue';
 import Import from '@/views/cronjob/cronjob/import/index.vue';
-import { onMounted, ref, toRefs } from 'vue';
+import { toRef, onMounted, ref, toRefs } from 'vue';
 import {
     deleteCronjob,
     editCronjobGroup,
@@ -316,9 +310,8 @@ const groupOptions = ref();
 const dialogGroupRef = ref();
 const pageState = usePageState(() => ({
     paginationConfig: {
-        cacheSizeKey: 'cronjob-page-size',
         currentPage: 1,
-        pageSize: Number(localStorage.getItem('cronjob-page-size')) || 20,
+        pageSize: 20,
         total: 0,
         orderBy: 'createdAt',
         order: 'null',
@@ -329,6 +322,11 @@ const pageState = usePageState(() => ({
 }));
 const paginationConfig = pageState.paginationConfig;
 const { defaultGroupID, searchName, searchGroupID } = toRefs(pageState);
+useSearchState(
+    'cronjob/cronjob/index',
+    { search: searchName, page: toRef(paginationConfig, 'currentPage'), pageSize: toRef(paginationConfig, 'pageSize') },
+    { onRevisit: () => search() },
+);
 
 const search = async (column?: any) => {
     if (column) {
@@ -470,17 +468,10 @@ const loadGroups = async () => {
         searchGroupID.value = undefined;
         paginationConfig.currentPage = 1;
     }
-    for (const group of groupOptions.value) {
-        if (group.name === 'Default') {
-            defaultGroupID.value = group.id;
-            break;
-        }
-    }
+    defaultGroupID.value = groupOptions.value.find((group) => group.isDefault)?.id;
     for (const item of data.value) {
         if (item.groupID === 0) {
-            item.groupBelong = 'Default';
             item.groupID = defaultGroupID.value;
-            continue;
         }
         let hasGroup = false;
         for (const group of groupOptions.value) {

@@ -65,6 +65,8 @@
             </template>
             <template #main>
                 <ComplexTable
+                    :selection-context="() => [searchName]"
+                    row-key="id"
                     :pagination-config="paginationConfig"
                     v-model:selects="selects"
                     :class="{ mask: maskShow }"
@@ -184,6 +186,7 @@
 </template>
 
 <script lang="ts" setup>
+import { useSearchState } from '@/utils/search-reset';
 import AppStatus from '@/components/app-status/index.vue';
 import AddDialog from '@/views/ai/model/ollama/add/index.vue';
 import Conn from '@/views/ai/model/ollama/conn/index.vue';
@@ -192,7 +195,7 @@ import Terminal from '@/views/ai/model/ollama/terminal/index.vue';
 import Del from '@/views/ai/model/ollama/del/index.vue';
 import PortJumpDialog from '@/components/port-jump/index.vue';
 import CodemirrorDrawer from '@/components/codemirror-pro/drawer.vue';
-import { onMounted, reactive, ref } from 'vue';
+import { toRef, onMounted, reactive, ref } from 'vue';
 import i18n from '@/lang';
 import { App } from '@/api/interface/app';
 import {
@@ -228,12 +231,16 @@ const bindDomainRef = ref();
 const taskLogRef = ref();
 const data = ref();
 const paginationConfig = reactive({
-    cacheSizeKey: 'model-page-size',
     currentPage: 1,
-    pageSize: Number(localStorage.getItem('page-size')) || 20,
+    pageSize: 20,
     total: 0,
 });
 const searchName = ref();
+useSearchState(
+    'ai/model/ollama/index',
+    { search: searchName, page: toRef(paginationConfig, 'currentPage'), pageSize: toRef(paginationConfig, 'pageSize') },
+    { onRevisit: () => search() },
+);
 const appInstallID = ref(0);
 
 const opRef = ref();

@@ -499,6 +499,7 @@ const message = {
         recommend: 'Disyorkan',
         dir: 'Direktori',
         alias: 'Alias',
+        quickDirDelete: 'Sahkan pemadaman ({0})?',
         quickDir: 'Akses Pantas',
         minQuickJump: 'Tambah sekurang-kurangnya satu entri akses pantas',
         maxQuickJump: 'Anda boleh menambah sehingga empat entri akses pantas',
@@ -575,6 +576,8 @@ const message = {
         cancelKeepAlive: 'Hentikan pengekalan sesi halaman',
     },
     header: {
+        userCenter: 'Pusat Pengguna',
+        exitSystem: 'Log keluar',
         logout: 'Log keluar',
     },
     database: {
@@ -779,6 +782,15 @@ const message = {
     },
     aiTools: {
         agents: {
+            deepSeekAccessHostHelper:
+                'Masukkan alamat IPv4 atau nama hos yang digunakan dalam pelayar, tanpa protokol, port atau laluan. HTTPS menggunakan sijil setempat aplikasi.',
+            deepSeekAuthHelper:
+                'Nama pengguna: huruf, nombor, titik, garis bawah atau sempang. Kata laluan: sekurang-kurangnya 12 aksara, tanpa ruang di awal/akhir atau baris baharu.',
+            octopAuthHelper:
+                'Kata laluan: sekurang-kurangnya 8 aksara dengan huruf dan nombor; elakkan kata laluan lazim. Jika ditolak, semak arahan persediaan dalam log aplikasi.',
+            initialCredentials: 'Maklumat log masuk awal; gunakan kata laluan semasa jika telah diubah dalam aplikasi.',
+            nativeAgentAccessUnavailable:
+                'Pemasangan sedia ada tiada alamat atau port HTTPS yang serasi. Semak tetapan aplikasi.',
             agent: 'Agen',
             account: 'Akaun model',
             batchOperation: 'Operasi pukal',
@@ -1077,6 +1089,13 @@ const message = {
             whiteListHelper: 'Hadkan akses kepada hanya IP dalam senarai putih',
         },
         aiProxy: {
+            deploymentNoticeTitle: 'AI Gateway menyokong penggunaan kendiri',
+            deploymentNoticeDescription:
+                'AI Gateway kini menyokong penggunaan kendiri. AI Gateway terbina dalam 1Panel tidak lagi akan menerima kemas kini. Kami mengesyorkan pemasangan versi kendiri daripada gedung aplikasi. Anda juga boleh terus menggunakan versi semasa.',
+            deploymentNoticeContinue: 'Faham, terus gunakan',
+            deploymentNoticeAppStore: 'Pergi ke gedung aplikasi',
+            deploymentNoticeNoAppPermission:
+                'Anda tidak mempunyai akses ke gedung aplikasi. Hubungi pentadbir untuk memasang versi kendiri.',
             title: 'Gateway AI',
             apiReference: 'Rujukan API',
             notInstalled: 'Belum dipasang',
@@ -1487,16 +1506,13 @@ const message = {
             statusWaiting: 'Menunggu',
             base: 'Maklumat Asas',
             backend: 'Backend',
-            baseUrl: 'URL Asas',
             endpoint: 'Endpoint',
             tokenizer: 'Tokenizer',
-            tokenizerPlaceholder:
-                'Pilih atau masukkan direktori tokenizer tempatan, cth. /opt/1panel/tokenizers/DeepSeek-V3',
+            tokenizerPlaceholder: 'Masukkan laluan direktori mutlak pada nod utama atau ID repositori Hugging Face',
             runConfig: 'Konfigurasi Jalan',
             rawResult: 'Keputusan Mentah',
             resultMetrics: 'Metrik Keputusan',
             contextTokens: 'Panjang Konteks',
-            contextTokensHelper: 'Had token input ditambah had token output untuk penanda aras ini.',
             outputThroughput: 'Throughput Output',
             outputThroughputHelper: 'Token output dijana setiap saat. Lebih tinggi bermaksud penjanaan lebih pantas.',
             totalThroughput: 'Jumlah Throughput',
@@ -1505,23 +1521,48 @@ const message = {
             firstTokenLatency: 'Latensi Token Pertama',
             firstTokenLatencyHelper:
                 'Masa dari menghantar permintaan hingga menerima token pertama. Lebih rendah bermaksud respons lebih pantas.',
-            tokenValueHelper: 'Masukkan integer positif atau nilai k, cth. 512, 1k, 32k',
             numPrompts: 'Prompt',
             concurrency: 'Keserentakan',
             mean: 'Min',
             median: 'Median',
             requestRate: 'Kadar Permintaan',
             requestRateUnlimited: 'Tanpa had (throughput maksimum)',
-            requestRateCustom: 'QPS tersuai',
             requestRateCustomPlaceholder: 'Permintaan sesaat, cth. 2.5',
             successfulRequests: 'Permintaan berjaya',
             requestThroughput: 'Throughput Permintaan',
-            timeout: 'Tamat Masa (saat)',
             image: 'Imej vLLM',
-            ignoreEos: 'Abaikan EOS',
+            ignoreEos: 'Abaikan token akhir jujukan (EOS)',
+            ignoreEosHelp:
+                'Mengelakkan penghentian awal akibat EOS untuk menguji panjang output yang ditetapkan. Syarat henti lain masih terpakai; sokongan pelayan diperlukan.',
             extraHeaders: 'Pengepala Tambahan',
         },
         vllmMonitor: {
+            concurrency: 'Permintaan serentak semasa',
+            sampleMoment: 'Pada masa pensampelan',
+            sampleWindow: 'Selang pensampelan',
+            requestUnit: 'permintaan',
+            processing: 'Sedang diproses',
+            queued: 'Dalam baris gilir',
+            requestTiming: 'Tempoh permintaan',
+            completedRequests: 'Permintaan selesai dalam selang masa',
+            tokensPerSecond: 'tokens/s',
+            requestsPerSecond: 'Permintaan/s',
+            finishReasonLabels: {
+                stop: 'Selesai secara normal',
+                length: 'Had panjang dicapai',
+                abort: 'Dibatalkan',
+                error: 'Ralat',
+                repetition: 'Pengulangan',
+            },
+            requestAnalysis: 'Analisis permintaan',
+            promptDistribution: 'Taburan panjang token input',
+            generationDistribution: 'Taburan panjang token output',
+            finishReasons: 'Sebab permintaan tamat',
+            queueTime: 'Purata masa dalam baris gilir',
+            averageGenerationTokens: 'Purata token output setiap permintaan',
+            prefixCacheHitRate: 'Kadar padanan cache awalan',
+            distributionHelper:
+                'Taburan panjang menunjukkan kadar permintaan dan tidak dipengaruhi oleh pilihan purata/puncak.',
             cleanHelper:
                 'Padamkan sejarah pemantauan untuk instans vLLM ini sahaja? Instans lain serta pemantauan hos dan GPU tidak terjejas.',
             overview: 'Gambaran keseluruhan',
@@ -1706,6 +1747,157 @@ const message = {
             modelType: 'Jenis model',
         },
     },
+    benchmarkPlan: {
+        prepareTimeoutHelp: 'Had masa persediaan, tidak termasuk had masa keseluruhan.',
+        pointTimeoutHelp:
+            'Pemasa berasingan setiap titik, termasuk permulaan, pemanasan dan semua permintaan; dihadkan oleh baki masa keseluruhan.',
+        totalTimeoutHelp:
+            'Bermula selepas persediaan, meliputi semua titik dan sela. Ujian berhenti apabila tamat masa.',
+        concurrencyLevels: 'Tahap keserentakan',
+        concurrencyHelp:
+            'Tahap diuji mengikut urutan. Setiap nilai mengehadkan bilangan permintaan yang berjalan serentak.',
+        requestCountMode: 'Tetapan bilangan permintaan',
+        fixedRequestMode: 'Permintaan tetap setiap tahap',
+        scaledRequestMode: 'Kira mengikut keserentakan',
+        requestsPerPoint: 'Permintaan setiap tahap',
+        requestCountFormula:
+            'Setiap tahap: nilai tetap atau max(keserentakan × pengganda, permintaan minimum). Jumlah senario: jumlah semua tahap × ulangan, tidak termasuk pemanasan.',
+        controlLog: 'Log persediaan dan kawalan',
+        executionLog: 'Log pelaksanaan',
+        pointLog: 'Titik #{0} · {1} · Log pelaksanaan',
+        archivedLog: '{0} (arkib {1})',
+        tokenLengths: 'Token input / output',
+        kind: 'Kategori hasil',
+        kindServe: 'serve (ujian biasa)',
+        kindPD: 'pd (pengukuran Prefill/Decode)',
+        saveDetailed: 'Simpan butiran permintaan',
+        saveDetailedHelp:
+            'Simpan panjang, kependaman, teks yang dijana dan ralat bagi setiap permintaan. Metrik ringkasan dikekalkan apabila dimatikan, sekali gus mengurangkan saiz fail hasil.',
+        parameters: 'Parameter',
+        temperatureHelp:
+            'Mengawal kerawakan output. Sifar biasanya memberikan output yang lebih stabil; nilai lebih tinggi meningkatkan kerawakan.',
+        pointTimeout: 'Had masa setiap titik (saat)',
+        temperature: 'Suhu pensampelan',
+        requestUrl: 'URL API',
+        invalidRequestUrl:
+            'Masukkan URL HTTP(S) penuh yang berakhir dengan /chat/completions atau /completions, tanpa kelayakan log masuk, parameter pertanyaan atau fragmen.',
+        requestRateHelp:
+            'Terpakai hanya pada senario ini. Kadar tanpa had masih mematuhi had keserentakan; QPS perpuluhan disokong.',
+        tokenizerModeHelp:
+            'Mod yang tersedia bergantung pada versi vLLM dalam imej penanda aras. Pemuatan pentoken disemak semasa penyediaan tugas.',
+        invalidBaseUrl: 'Masukkan URL HTTP(S) yang sah tanpa kelayakan, pertanyaan atau fragmen.',
+        invalidEndpoint:
+            'Masukkan laluan yang sepadan dengan protokol dipilih dan berakhir dengan {0}, tanpa parameter pertanyaan atau fragmen.',
+        invalidTokenizer:
+            'Gunakan direktori mutlak atau ID repositori; laluan relatif, koma dan baris baharu tidak disokong.',
+        invalidRequestRate:
+            'Pilih tanpa had atau masukkan nombor terhingga lebih besar daripada 0; perpuluhan disokong.',
+        invalidCaCert: 'Masukkan laluan mutlak sijil CA pada nod utama tanpa koma atau baris baharu.',
+        bodyOverride: 'Badan tambahan tidak boleh menimpa {0}.',
+        invalidBody: 'Masukkan objek JSON yang sah.',
+        invalidConcurrencies: 'Berikan 1–100 nilai serentak, setiap satu integer antara 1 dan 100000.',
+        emptyRequestCount:
+            'Apabila mengira mengikut keserentakan, pengganda dan permintaan minimum tidak boleh kedua-duanya 0.',
+        requestCountLimit: 'Permintaan yang dikira bagi setiap titik tidak boleh melebihi 1000000.',
+        contextExceeded: 'Jumlah token input, output dan rizab templat melebihi had konteks.',
+        planLimit: 'Berikan 1–100 senario dengan tidak lebih daripada 2000 titik.',
+
+        caCertHelp:
+            'Pilih sijil CA pada pelayan utama untuk mengesahkan perkhidmatan HTTPS. Biarkan kosong untuk menggunakan sijil sistem.',
+        extraBody: 'Badan permintaan tambahan',
+        entryKey: 'Nama parameter',
+        entryValue: 'Nilai parameter',
+        tokenizerMode: 'Mod pentoken',
+        requireIdle: 'Semak sama ada perkhidmatan melahu sebelum bermula',
+        requireIdleHelp:
+            'Menyemak /metrics sekali sebelum pemanasan dan ujian beban. Berhenti jika perkhidmatan sibuk atau keadaan melahu tidak dapat disahkan. Ini tidak menghalang trafik lain semasa ujian.',
+        trustRemoteCode: 'Percayai kod jauh',
+        trustRemoteCodeHelp:
+            'Membenarkan kod pentoken tersuai daripada repositori model dijalankan dalam bekas penanda aras. Aktifkan hanya jika diperlukan dan sumber dipercayai.',
+        tokenizerModes: { auto: 'Automatik (disyorkan)', slow: 'Pentoken perlahan', mistral: 'Pentoken Mistral' },
+        quickDescription: 'Sahkan sambungan dan pengukuran dengan satu permintaan.',
+        regularDescription: 'Beban pendek, sederhana dan panjang untuk ujian prestasi rutin.',
+        fullDescription:
+            'Pelbagai senario, tahap keserentakan dan ulangan, termasuk input panjang dan awalan dikongsi.',
+        customDescription: 'Mulakan dengan satu senario, tetapkan parameternya dan tambah lagi mengikut keperluan.',
+        scenarios: 'Senario',
+        builtIn: 'Terbina dalam',
+        builtInHelp: 'Pelan terbina dalam tidak boleh disunting atau dipadam. Laraskan salinan semasa mencipta ujian.',
+        modified: 'Diubah suai',
+
+        imageExists: 'Tersedia secara setempat',
+        imageNeedsPull: 'Perlu dimuat turun',
+        remark: 'Catatan',
+        source: 'Perkhidmatan setempat',
+        mode: 'Pelan ujian',
+        quick: 'Semakan pantas',
+        regular: 'Biasa',
+        full: 'Penuh',
+        custom: 'Tersuai',
+        addScenario: 'Tambah senario',
+        advanced: 'Tetapan lanjutan',
+        points: 'Titik',
+        warmups: 'Permintaan pemanasan',
+        fixedRequests: 'Permintaan tetap',
+        multiplier: 'Permintaan bagi keserentakan',
+        minRequests: 'Permintaan minimum',
+        trials: 'Ulangan',
+        prefixRatio: 'Nisbah awalan dikongsi',
+        totalTimeout: 'Had masa pusingan (s)',
+        prepareTimeout: 'Had masa persediaan (s)',
+        interval: 'Sela titik (s)',
+        context: 'Had konteks (0: tidak diketahui)',
+        reserve: 'Token simpanan templat',
+        storage: 'Had storan (MiB)',
+        stopOnError: 'Hentikan titik seterusnya jika ralat',
+        caCert: 'Laluan sijil CA',
+        validTrials: 'Sah / jumlah ulangan',
+        retry: 'Ulang titik terpilih',
+        environment: 'Persekitaran',
+        plan: 'Konfigurasi dibekukan',
+        clientHelp:
+            'Kontena klien berjalan pada nod utama dan menghantar permintaan kepada perkhidmatan sedia ada. Ia tidak memulakan inferens atau memerlukan GPU.',
+        retryHelp: 'Hanya titik bermasalah yang dipilih diulang, dengan parameter sama dan benih baharu.',
+        secretHelp: 'Salinan tidak mengandungi kunci API atau pengepala. Masukkan semula jika perlu.',
+        resultHelp:
+            'Median dan minimum/maksimum hanya melibatkan ujian berjaya tanpa anomali permintaan. P99 ialah median P99 setiap ujian. Cache dan trafik luaran tidak dikawal.',
+    },
+    benchmarkOverview: {
+        noResults: 'Tiada keputusan ujian yang sah. Semak sebab kegagalan dan log.',
+        noGroupResults: 'Tiada keputusan sah untuk gabungan ini. Pilih senario atau keserentakan lain.',
+        partial: 'Keputusan separa: ujian tidak berjaya sepenuhnya. Metrik hanya merangkumi titik yang sah.',
+        highlights: 'Metrik utama',
+        aggregate: 'Median pelaksanaan sah bagi gabungan ini. Klik metrik untuk butiran.',
+        trend: 'Trend keserentakan',
+        std: 'Sisihan piawai',
+        min: 'Minimum',
+        max: 'Maksimum',
+        tpot: 'Masa setiap token output',
+        tpotHelp: 'Purata masa penjanaan setiap token output selepas token pertama.',
+        itl: 'Kependaman antara token',
+        itlHelp: 'Masa antara token berturutan dalam respons penstriman.',
+        e2el: 'Kependaman hujung ke hujung',
+        e2elHelp: 'Masa dari penghantaran permintaan hingga penerimaan respons lengkap.',
+        requestHelp: 'Bilangan permintaan yang selesai setiap saat.',
+        usageHelp:
+            'Median pelaksanaan sah bagi gabungan ini, bukan jumlah permintaan keseluruhan ujian. Lihat pelaksanaan tidak normal dalam tab titik.',
+        duration: 'Tempoh pelaksanaan',
+        throughput: 'Daya pemprosesan',
+        latency: 'Kependaman',
+        usage: 'Permintaan dan penggunaan (pelaksanaan sah)',
+    },
+    benchmarkTokenizer: {
+        title: 'Pengurusan tokenizer',
+        local: 'Daftar direktori setempat',
+        upload: 'Muat naik pakej tokenizer',
+        uploadHelp: 'Muat naik ZIP / tar.gz tanpa pemberat model. Had: 128 MiB dimampatkan, 256 MiB selepas diekstrak.',
+        source: 'Kaedah import',
+        deleteLocal: 'Alih keluar pendaftaran tokenizer “{0}”? Direktori dan fail asal akan dikekalkan.',
+        deleteUpload: 'Padam tokenizer “{0}” serta fail yang dimuat naik? Laporan ujian terdahulu akan dikekalkan.',
+        select: 'Pilih tokenizer',
+        selectHelp:
+            'Untuk ujian luar talian, pilih tokenizer terurus. Input tersuai menerima direktori setempat atau nama repositori.',
+    },
     container: {
         createByCommand: 'Cipta melalui perintah',
         importContainerBackupTip: 'Import fail sandaran kontena, hanya format .tar.gz disokong',
@@ -1882,6 +2074,11 @@ const message = {
         imageName: 'Nama imej',
         pull: 'Tarik',
         path: 'Laluan',
+        imageUploadDrop: 'Seret fail imej ke sini atau klik untuk memuat naik',
+        imageUploadHelper:
+            'Semua format fail dibenarkan. Docker mengesahkan kandungannya. Fail yang dimuat naik disimpan untuk mencuba semula import atau dipadam secara manual.',
+        imageUploadEmpty: 'Fail kosong. Pilih arkib imej yang sah.',
+        imageImportSubmitted: 'Tugas import imej telah dihantar. Semak log tugas untuk melihat hasilnya.',
         importImage: 'Import',
         buildArgs: 'Argumen Binaan',
         imageBuild: 'Bina',
@@ -2930,6 +3127,9 @@ const message = {
         privateKey: 'Kunci Persendirian',
         publicKey: 'Kunci Awam',
         password: 'Kata Laluan',
+        existingPassPhrase: 'Frasa laluan kunci peribadi sedia ada',
+        existingPassPhraseHelper:
+            'Masukkan frasa laluan asal jika kunci peribadi disulitkan; jika tidak, biarkan kosong. Ini tidak mengubah frasa laluan.',
         createMode: 'Kaedah Penciptaan',
         generate: 'Jana Automatik',
         unSyncPass: 'Kata laluan kunci tidak dapat diselaraskan',
@@ -2970,6 +3170,20 @@ const message = {
         remote: 'SSH jauh',
     },
     setting: {
+        panelCache: {
+            title: 'Tetapan cache',
+            tabs: 'Cache tab',
+            pagination: 'Cache halaman',
+            refresh: 'Cache sela penyegaran',
+            search: 'Cache input carian',
+            duration: 'Tempoh cache',
+            '24h': '24 jam',
+            week: 'Satu minggu',
+            month: 'Satu bulan',
+            forever: 'Kekal',
+            helper: 'Tempoh sah dikira dari perubahan keadaan terakhir. Selepas tamat tempoh, nilai lalai dipulihkan.',
+        },
+
         panel: 'Panel',
         user: 'Pengguna panel',
         userChange: 'Tukar pengguna panel',
@@ -3707,6 +3921,7 @@ const message = {
         link: 'Pautan',
         showCurrentArch: 'Aplikasi seni bina pelayan semasa',
         syncLocalApp: 'Segerakkan Aplikasi Tempatan',
+        localAppSyncToNodes: 'Sertakan nod anak semasa menyegerakkan aplikasi tempatan',
         memoryRequiredHelper: 'Aplikasi semasa memerlukan {0} memori',
         gpuConfig: 'Aktifkan Sokongan GPU',
         gpuConfigHelper:
@@ -4228,6 +4443,8 @@ const message = {
             'Mengaktifkan ini boleh mengelakkan kebocoran sijil, menetapkan laman web lalai akan membatalkan tetapan ini',
     },
     ssl: {
+        deleteConfirm: 'Sijil berikut akan dipadamkan. Sijil ACME akan dibatalkan secara automatik. Teruskan?',
+        deleteAndRevoke: 'Padam dan batalkan',
         create: 'Permintaan',
         provider: 'Jenis',
         manualCreate: 'Dicipta secara manual',
@@ -4270,7 +4487,8 @@ const message = {
         domainHelper: 'Satu nama domain setiap baris, menyokong * dan alamat IP',
         pushDir: 'Tolakkan sijil ke direktori tempatan',
         dir: 'Direktori',
-        pushDirHelper: 'Fail sijil "fullchain.pem" dan fail kunci "privkey.pem" akan dihasilkan dalam direktori ini.',
+        pushDirHelper:
+            'Pilih beberapa direktori atau masukkan satu direktori pada setiap baris. Fail "fullchain.pem" dan "privkey.pem" akan dihasilkan dalam setiap direktori.',
         organizationDetail: 'Butiran organisasi',
         fromWebsite: 'Daripada laman web',
         dnsMauanlHelper:
@@ -4311,49 +4529,48 @@ const message = {
         useEAB: 'Gunakan pengesahan EAB',
     },
     firewall: {
+        ipv6Support: 'Sokongan IPv6',
+        ipv6SupportHelper:
+            'Mengawal pengurusan dan penguatkuasaan peraturan tembok api IPv6 tanpa menjejaskan rangkaian IPv6 pelayan.',
+        ipv6DisableContainerHelper: 'Sembunyikan maklumat port IPv6 bekas.',
+        ipv6DisableWhitelistHelper:
+            'Buang peraturan IPv6 daripada senarai dibenarkan dan kekalkan semua peraturan IPv6 sedia ada yang lain.',
+        ipv6DisableRulesHelper: 'Nyahdayakan peraturan IPv6 iptables dan nftables yang diuruskan oleh 1Panel.',
+        ipv6DisableNetworkHelper: 'Ini tidak menyahdayakan rangkaian IPv6 pelayan.',
+        ipv6DisableEffectHelper: 'Sekatan akses IPv6 dan pemajuan port yang terlibat tidak lagi berkuat kuasa.',
+        ipv6Disabled: 'Sokongan IPv6 dinyahdayakan. Dayakannya dalam tetapan tembok api dahulu.',
+        familyRepair: 'Baiki',
+        familyIncomplete: 'Rantaian {0} tidak lengkap',
+        resetWithBackup: 'Sandarkan peraturan dan tetapkan semula',
+        resetOnly: 'Tetapkan semula sahaja',
+        resetWithBackupHelper:
+            'Simpan peraturan modul semasa sebagai JSON untuk dipulihkan semasa pemulaan atau semasa tembok api dimulakan.',
+        resetOnlyHelper: 'Padam peraturan semasa tanpa sandaran baharu. Sandaran sedia ada dikekalkan.',
+        backupDirectoryHelper:
+            'Sandaran peraturan yang sah dalam {0} disenaraikan di bawah. Fail terkini dipilih secara lalai.',
+        startOnly: 'Mula sahaja',
+        startAndRestore: 'Mula dan pulihkan daripada sandaran',
+        startWithBackupHelper:
+            'Mulakan tembok api seperti biasa atau pilih sandaran JSON sedia ada untuk memulakan dan memulihkan peraturan.',
+        restoreAllRules: 'Mulakan dan pulihkan peraturan',
+        importRuleBackup: 'Import daripada sandaran',
+        initializeOnly: 'Mulakan sahaja',
+        backupRuleCount: 'Bilangan peraturan',
+        noRuleBackup: 'Tiada sandaran peraturan yang boleh dipulihkan',
+        ruleBackupLoadFailed: 'Gagal memuatkan sandaran peraturan. Cuba lagi atau mulakan tanpa memulihkan sandaran.',
         create: 'Buat peraturan',
         edit: 'Edit peraturan',
         quickJump: 'Akses pantas',
         used: 'Digunakan',
         unUsed: 'Tidak Digunakan',
-        managed: 'Dicipta panel',
-        managedHelper: 'Dicipta dan diselenggara oleh 1Panel. Peraturan ini boleh diedit atau dipadam.',
-        adopted: 'Luaran terurus',
-        adoptedHelper: 'Peraturan sistem sedia ada yang kini diselenggara oleh 1Panel.',
-        external: 'Peraturan luaran',
-        externalHelper:
-            'Peraturan sistem sedia ada yang belum diurus oleh 1Panel. Ia boleh diambil alih apabila diperlukan.',
-        protected: 'Dilindungi sistem',
-        protectedHelper:
-            'Peraturan terbina dalam dan peraturan yang sepadan tepat dengan senarai putih tidak boleh diedit atau dipadam.',
-        stateShort: {
-            managed: 'Panel',
-            adopted: 'Terurus',
-            external: 'Luaran',
-            protected: 'Dilindungi',
-            drifted: 'Berbeza',
-        },
+        whitelist: 'Senarai dibenarkan',
+        builtinRuleProtected: 'Peraturan perlindungan terbina dalam sistem. Ia tidak boleh diedit atau dipadam.',
+        whitelistRuleProtected:
+            'Peraturan senarai dibenarkan hanya membenarkan perubahan susunan dan penerangan. Untuk perubahan lain, pergi ke Tetapan → Senarai port yang dibenarkan.',
         ruleTargetRequired: 'Masukkan sekurang-kurangnya satu alamat IP atau port',
-        resolution_adopt: 'Ambil alih pengurusan',
-        plan_duplicate_rules:
-            'Peraturan pendua dengan syarat dan tindakan yang sama tidak boleh diambil alih untuk diurus. Padam peraturan pendua secara manual dan cuba lagi.',
-        adoptRuleConfirm:
-            'Selepas diambil alih, 1Panel boleh menyelenggara dan memadam peraturan sedia ada ini. Teruskan?',
-        plan_exact_rule_conflict:
-            'Peraturan dengan syarat padanan yang sama mempunyai tindakan benarkan atau sekat yang bertentangan.',
-        allRulesAlreadyExist: 'Kesemua {0} peraturan yang diperiksa sudah wujud. Tiada peraturan baharu untuk dicipta.',
-        plan_managed_rule_drifted:
-            'Peraturan terurus tidak sepadan dengan tembok api aktif. Selesaikan perbezaan dahulu.',
-        plan_opaque_rule_in_target_scope:
-            'Skop sasaran mengandungi peraturan yang tidak dapat dihuraikan dengan selamat. Operasi dihentikan.',
-        plan_runtime_permanent_mismatch: 'Konfigurasi tembok api aktif dan kekal berbeza. Segerakkan dahulu.',
-        plan_protected_rule: 'Peraturan ini dilindungi dan tidak boleh diambil alih, diubah atau dipadam.',
-        plan_blocked: 'Peraturan ini tidak dapat digunakan dengan selamat. Muat semula senarai dan cuba lagi.',
         largeRuleSet:
             'Terlalu banyak peraturan tembok api boleh melambatkan operasi. Penggunaan iptables atau nftables disyorkan.',
-        scopeDefaultMismatch: 'Zon lalai sistem ialah {0}; halaman ini hanya mengurus zon public.',
         scopeMissing: 'Skop terurus {0} tiada dan akan dicipta dengan selamat apabila peraturan pertama digunakan.',
-        scopeUnmanagedActive: 'Skop aktif lain dikesan: {0}. 1Panel tidak akan mengubah peraturannya.',
         dockerRestart: 'Operasi firewall memerlukan memulakan semula perkhidmatan Docker',
         firewallHelper: '{0} firewall sistem',
         firewallNotStart: 'Firewall sistem belum diaktifkan. Aktifkannya dahulu.',
@@ -4377,8 +4594,6 @@ const message = {
         dockerGuard: 'Perlindungan port bekas',
         systemFirewall: 'Tembok api hos',
         systemFirewallHelper: 'Mengawal akses port hos dan peraturan masuk.',
-        forwardPolicyDropWarning:
-            'Dasar FORWARD lalai untuk {0} ialah DROP. Trafik yang dimajukan ke hos lain mungkin disekat melainkan dibenarkan secara jelas oleh peraturan iptables/ip6tables. Semak peraturan kebenaran untuk versi IP yang berkenaan.',
         forwardingHelper: 'Mengurus peraturan pemajuan port.',
         dockerFirewallHelper: 'Memilih cara 1Panel mengurus perlindungan port bekas.',
         dockerNftablesRequirement: 'Docker ≥ 29.0.0, percubaan',
@@ -4387,6 +4602,8 @@ const message = {
         addressFamily: 'Versi IP',
         portOrRange: 'Port / julat',
         batchLimit: 'Cipta atau import maksimum {0} peraturan setiap kelompok selepas pengembangan.',
+        importDuplicatesRemoved:
+            '{0} peraturan pendua telah dibuang, termasuk pendua dalam fail dan peraturan yang sudah wujud.',
         importLimit:
             'Import sehingga {0} peraturan (dikira selepas pengembangan), dengan saiz fail tidak melebihi {1} KB.',
         ruleSyncTitle: 'Segerakkan peraturan',
@@ -4405,19 +4622,9 @@ const message = {
         ruleSyncBlocked: 'Tidak tersedia',
         ruleSyncReason: 'Hasil semakan',
         ruleSyncReasonDetail: {
-            matchesDatabasePolicy: 'Peraturan sudah sepadan dengan dasar pangkalan data.',
-            managedOrderDiffers: 'Susunan peraturan terurus berbeza daripada turutan pangkalan data.',
-            managedOnlyInTarget: 'Peraturan terurus hanya wujud dalam tembok api sasaran.',
-            managedRuntimeCannotRemove: 'Peraturan aktif terurus tidak dapat dipadam dengan selamat.',
             missingFromTarget: 'Peraturan tiada dalam tembok api sasaran.',
-            targetDiffers: 'Peraturan sasaran berbeza daripada dasar pangkalan data.',
             alreadyExistsInTarget: 'Peraturan sudah wujud dalam tembok api sasaran.',
             onlyInTarget: 'Peraturan hanya wujud dalam tembok api sasaran.',
-            stale: 'Keadaan peraturan tembok api sudah lapuk. Muat semula dan cuba lagi.',
-            protectedRule: 'Peraturan tembok api yang dilindungi ini tidak boleh diubah.',
-            dockerAcceptReadOnly:
-                'Peraturan ACCEPT ini adalah baca sahaja dan akan dikekalkan semasa peraturan lain disegerakkan. Untuk membuangnya, padam secara manual pada hos.',
-            cannotReconcile: 'Peraturan sasaran tidak dapat disegerakkan: {0}',
         },
         ruleSyncPartial: 'Penyegerakan selesai: {0} berjaya, {1} sudah wujud dan {2} gagal.',
         ruleSyncSuccess: 'Penyegerakan selesai: {0} berjaya, {1} sudah wujud dan {2} dipadam.',
@@ -4427,17 +4634,19 @@ const message = {
             remove: 'Untuk dipadam',
             blocked: 'Tidak tersedia',
         },
-        resetDirectRulesHelper:
-            'Padam rantaian, peraturan masa jalan dan fail berterusan tembok api sistem 1Panel daripada {0}; dasar pangkalan data yang disimpan dikekalkan',
+        initializeFromFile: 'Mulakan daripada fail',
+        downloadRuleBackup: 'Muat turun sandaran peraturan',
+        importFileHelper:
+            'Import fail JSON sehingga 64 MB secara kelompok mengikut susunan fail. Peraturan yang tidak dapat ditukar akan dilaporkan sebagai ralat.',
+        resetDirectRulesHelper: 'Padam semua rantai tembok api hos 1Panel, peraturan aktif dan fail kekal dalam {0}.',
         resetWhitelistRulesHelper:
-            'Tetapkan semula konfigurasi tersuai aktif dalam {0}, pulihkan tetapan pemasangan asal dan nyahdayakan {0}; dasar pangkalan data dikekalkan dan boleh disegerakkan semula.',
+            'Tetapkan semula konfigurasi tersuai {0}, pulihkan tetapan lalai dan nyahaktifkannya.',
         cleanupForwardingBackendHelper:
-            'Tetapkan semula peraturan masa jalan pemajuan port 1Panel dalam {0}: padam semua peraturan dan rantaian berkaitan sambil mengekalkan data pangkalan data',
+            'Padam semua peraturan pemajuan, rantaian dan fail pemulihan automatik 1Panel daripada {0}. Sandaran JSON sedia ada dikekalkan.',
         cleanupDockerBackendHelper:
-            'Tetapkan semula peraturan masa jalan perlindungan port Docker 1Panel dalam {0}: padam semua peraturan dan rantaian berkaitan sambil mengekalkan data pangkalan data',
+            'Padam semua peraturan perlindungan Docker, rantaian dan fail pemulihan automatik 1Panel daripada {0}. Sandaran JSON sedia ada dikekalkan.',
         cleanupBeforeBackendSwitch:
-            'Bahagian belakang semasa {0} masih mengandungi peraturan masa jalan 1Panel. Tetapkan semula sebelum bertukar kepada {1}. Penetapan semula hanya membersihkan peraturan masa jalan; dasar pangkalan data dikekalkan dan boleh dimulakan atau disegerakkan selepas penukaran.',
-        cleanupAction: 'Tetapkan semula',
+            'Tetapkan semula {0} semasa sebelum beralih kepada {1} dan sahkan cara peraturannya akan dipulihkan.',
         backendSwitchNotice:
             'Disyorkan untuk mengaktifkan hanya satu kaedah pengurusan tembok api. Menjalankan berbilang tembok api serentak boleh menyebabkan konflik peraturan, status tidak konsisten atau masalah akses port kontena.',
         switchBackendHelper: 'Tukar kepada {0}?',
@@ -4468,9 +4677,9 @@ const message = {
             'Peraturan INPUT hos tidak melindungi port terbitan Docker ini secara langsung. Klik untuk membuka perlindungan port bekas.',
         notInitialized: 'Belum dimulakan',
         ipv6RARisk:
-            'Pemajuan IPv6 disekat: antara muka {0} mempunyai accept_ra=1 dan mungkin bergantung pada RA/SLAAC. Semak konfigurasi rangkaian, tetapkan accept_ra=2 secara kekal pada antara muka yang memerlukan RA, kemudian cuba lagi.',
+            'Pemajuan IPv6 disekat bagi mengelakkan risiko kehilangan sambungan rangkaian. Rujuk dokumentasi dan log sistem.',
         ipv6RACheckFailed:
-            'Konfigurasi RA IPv6 tidak dapat diperiksa. Pengaktifan pemajuan IPv6 disekat. Semak konfigurasi rangkaian sistem dan cuba lagi.',
+            'Pemajuan IPv6 disekat kerana konfigurasi rangkaian tidak dapat diperiksa. Lihat log sistem untuk butiran.',
         ipv6ForwardingOnDemand:
             'Pemajuan IPv6 belum diaktifkan. Ia akan diperiksa dan diaktifkan apabila peraturan IPv6 ditambah atau dipulihkan.',
         familyUnsupported: 'Sistem tidak menyokong {0}',
@@ -4483,8 +4692,7 @@ const message = {
         portDetails: 'Butiran port',
         orphanEndpoints: 'Titik akhir tidak berkaitan',
         orphanPolicies: 'Peraturan tidak berkaitan',
-        orphanPoliciesHelper:
-            '{0} peraturan berikut belum terikat pada port Docker. Peraturan akan diikat secara automatik apabila port sepadan dikesan.',
+        orphanPoliciesHelper: '{0} peraturan sistem ini tiada port Docker terbitan yang sepadan.',
         composeOrApp: 'Compose / Aplikasi',
         sources: 'Sumber',
         deniedSources: 'Sumber ditolak',
@@ -4493,6 +4701,8 @@ const message = {
         protectionMode: 'Mod perlindungan',
         denySources: 'Tolak sumber tertentu',
         allowSources: 'Benarkan sumber tertentu sahaja',
+        acceptSources: 'Terima sumber yang ditentukan secara langsung',
+        acceptAll: 'Terima semua trafik secara langsung',
         denyAll: 'Tolak semua akses',
         dockerGuardMixedFamilyHelper:
             'IPv4 dan IPv6 dipilih. Konfigurasikan dasar berasaskan sumber secara berasingan; tolak semua boleh digunakan terus.',
@@ -4535,7 +4745,7 @@ const message = {
             'Nyahikat - Apabila tidak terikat, semua peraturan firewall yang ditambah akan menjadi tidak sah. Teruskan dengan berhati-hati. Sahkan?',
         portWhiteList: 'Senarai putih port',
         whitelistConfigHelper:
-            'Senarai dibenarkan hanya menyimpan konfigurasi dan melindungi peraturan kebenaran yang sepadan. Peraturan yang tiada ditambah semasa mula, mula semula, pemulaan atau penyegerakan. Mengedit atau memadam entri tidak membuang peraturan sedia ada.',
+            'Menyimpan senarai dibenarkan menambah peraturan kebenaran yang tiada dan melindungi peraturan yang sepadan. Mengedit atau memadam entri senarai tidak memadam peraturan sedia ada.',
         whitelistDeleteConfirm:
             'Hanya entri senarai putih ini akan dipadam. Peraturan tembok api sedia ada akan dikekalkan. Teruskan?',
         portWhiteListHelper:
@@ -4553,7 +4763,7 @@ const message = {
         whitelistServicePortsHelper:
             'Masukkan satu port (1-65535). Ini tidak mengubah port pendengaran perkhidmatan. Menukar port dalam tetapan perkhidmatan turut mengemas kini entri senarai putih ini.',
         whitelistSourcesHelper:
-            'Masukkan alamat IP atau julat CIDR, dipisahkan dengan koma atau baris baharu. Biarkan kosong untuk membenarkan semua sumber IPv4 dan IPv6.',
+            'Masukkan alamat IP atau julat CIDR, dipisahkan dengan koma atau baris baharu. Biarkan kosong untuk membenarkan {0}.',
         destinationPortPlaceholder: 'contoh: 80, 80,443 atau 8080-8089',
         deleteRuleConfirm: 'Akan memadam {0} peraturan. Teruskan?',
         deleteUsedRuleConfirm:
@@ -7049,16 +7259,16 @@ const message = {
             webhookPreset: 'Pratetap',
             genericJsonPreset: 'JSON umum',
             customPreset: 'Tersuai',
-            webhookUrlSecretHelper: 'URL Webhook disimpan secara disulitkan dan boleh dilihat serta diedit di sini',
             webhookPublicAddressHelper:
                 'Hanya alamat HTTP/HTTPS yang boleh dicapai secara awam disokong; alamat setempat, peribadi dan simpanan disekat',
             customWebhookRecoveryRequired:
-                'Konfigurasi ini tidak sah atau daripada versi lama. Masukkan semula URL Webhook dan Header rahsia yang diperlukan, kemudian simpan.',
+                'Konfigurasi Webhook yang disimpan tidak dapat dibaca. Masukkan semula URL dan header sensitif yang diperlukan, kemudian pastikan ujian berjaya sebelum menyimpan.',
             clearSecret: 'Kosongkan',
-            keepSecret: 'Kekalkan',
-            secretCleared: 'Rahsia ini akan dikosongkan apabila disimpan',
+            keepSecret: 'Pulihkan nilai tersimpan',
             bodyType: 'Jenis Body',
             bodyTemplate: 'Templat Body',
+            formatJson: 'Format',
+            jsonFormatTooLarge: 'Kandungan yang diformat melebihi had saiz. Kandungan asal telah dikekalkan.',
             formFieldName: 'Nama medan',
             formFieldValue: 'Nilai medan',
             addFormField: 'Tambah medan',
@@ -7341,12 +7551,17 @@ const message = {
             storagePoolHelper: 'Kolam storan menyimpan cakera mesin maya dan fail ISO.',
             network: 'Rangkaian',
             bridgeName: 'Nama Bridge',
+            sourceInterface: 'Antara muka rangkaian hos',
+            macvtapNetworkHelper:
+                'VM bertindak seperti komputer berasingan dalam LAN. Peranti lain boleh mengakses IP-nya secara terus tanpa mengubah tetapan IP hos. Nota: secara lalai, hos dan VM tidak boleh berkomunikasi secara terus melalui sambungan ini.',
+            macvtapInterfaceHelper:
+                'Pilih antara muka berwayar yang bersambung ke LAN sasaran; ia boleh dikongsi dengan hos. LAN memberikan IP VM, atau anda boleh menetapkannya secara manual dalam VM. Rangkaian mesti membenarkan beberapa peranti pada antara muka ini (berbilang alamat MAC).',
             natNetworkHelper:
-                'VM boleh mengakses rangkaian melalui hos, tetapi peranti luar biasanya tidak boleh mengaksesnya secara langsung.',
+                'Sesuai untuk VM yang memerlukan akses internet atau menyediakan beberapa perkhidmatan sahaja. VM mengakses internet melalui hos. Peranti lain biasanya memerlukan pemajuan port yang dikonfigurasi secara berasingan untuk mengakses perkhidmatannya.',
             bridgeNetworkHelper:
-                'Sambungkan VM ke bridge hos sedia ada (seperti br0). Jika hos mempunyai kad rangkaian tambahan yang tidak digunakan, anda boleh mencipta bridge untuknya dan menggunakannya.',
+                'VM bertindak seperti komputer berasingan yang disambungkan ke suis rangkaian. Hos dan peranti LAN lain boleh mengaksesnya secara terus. Konfigurasikan bridge pada hos terlebih dahulu.',
             bridgeNameHelper:
-                'Pilih Linux bridge sedia ada pada hos, seperti br0. NIC fizikal bukan bridge, dan bridge yang diurus docker/libvirt tidak boleh dipilih di sini.',
+                'Pilih bridge yang telah dikonfigurasi, seperti br0. Jika tiada pilihan, cipta bridge pada hos terlebih dahulu. Antara muka fizikal dan bridge yang diurus oleh Docker/libvirt tidak boleh dipilih di sini.',
             natCIDRHelper: 'CIDR, get laluan dan julat DHCP digunakan oleh rangkaian maya NAT baharu.',
             networkCIDR: 'CIDR Rangkaian',
             gateway: 'Get Laluan',
@@ -7364,6 +7579,7 @@ const message = {
             available: 'Tersedia',
             vmCount: 'VM Terpaut',
             usedIPs: 'IP Digunakan',
+            usedIPsUnavailable: 'Pengambilan belum disokong',
             monitor: 'Pemantauan',
             monitorNotReady: 'Mesin maya tidak berjalan. Data pemantauan tidak tersedia.',
             monitorLoadFailed: 'Gagal mendapatkan data pemantauan VM.',

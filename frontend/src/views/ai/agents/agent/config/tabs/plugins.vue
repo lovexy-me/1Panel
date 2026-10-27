@@ -172,6 +172,7 @@
 </template>
 
 <script setup lang="ts">
+import { useSearchState } from '@/utils/search-reset';
 import { computed, ref, watch } from 'vue';
 import { Refresh, Search } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
@@ -192,6 +193,18 @@ const searching = ref(false);
 const operating = ref('');
 const keyword = ref('');
 const marketKeyword = ref('');
+useSearchState(
+    'ai/agents/agent/config/tabs/plugins',
+    { keyword, marketKeyword },
+    {
+        scope: () => agentId.value || undefined,
+        onRevisit: () => {
+            page.value = 1;
+            marketResults.value = [];
+            marketSearched.value = false;
+        },
+    },
+);
 const origin = ref('');
 const status = ref('');
 const page = ref(1);
@@ -299,8 +312,6 @@ async function operate(plugin: AI.AgentPluginItem, action: PluginOperate) {
 async function load(id: number) {
     agentId.value = id;
     mode.value = 'installed';
-    keyword.value = '';
-    marketKeyword.value = '';
     origin.value = '';
     status.value = '';
     page.value = 1;

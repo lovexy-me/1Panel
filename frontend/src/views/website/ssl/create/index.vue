@@ -127,11 +127,21 @@
                     <el-checkbox v-model="ssl.pushDir" :label="$t('ssl.pushDir')" />
                 </el-form-item>
                 <el-form-item :label="$t('ssl.dir')" prop="dir" v-if="ssl.pushDir">
-                    <el-input v-model.trim="ssl.dir">
-                        <template #prepend>
-                            <el-button icon="Folder" @click="fileRef.acceptParams({ path: ssl.dir, dir: true })" />
-                        </template>
-                    </el-input>
+                    <el-button
+                        icon="Folder"
+                        class="mb-2"
+                        @click="
+                            fileRef.acceptParams({
+                                path: ssl.dir.split('\n')[0],
+                                dir: true,
+                                multiple: true,
+                                selectedPaths: ssl.dir.split('\n').filter(Boolean),
+                            })
+                        "
+                    >
+                        {{ $t('ssl.dir') }}
+                    </el-button>
+                    <el-input v-model.trim="ssl.dir" type="textarea" :rows="3" />
                     <span class="input-help">
                         {{ $t('ssl.pushDirHelper') }}
                     </span>
@@ -179,7 +189,7 @@ import { Rules, checkMaxLength } from '@/global/form-rules';
 import FileList from '@/components/file-list/index.vue';
 import i18n from '@/lang';
 import { FormInstance } from 'element-plus';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { MsgSuccess } from '@/utils/message';
 import { KeyTypes } from '@/global/mimetype';
 import { getDNSName, getAccountName } from '@/utils/ssl';
@@ -265,6 +275,15 @@ const initData = () => ({
 
 const ssl = ref(initData());
 const operate = ref('create');
+watch([() => ssl.value.acmeAccountId, acmeAccounts], () => {
+    if (operate.value !== 'create' || ssl.value.provider === 'selfSigned') {
+        return;
+    }
+    const account = acmeAccounts.value?.find((item) => item.id === ssl.value.acmeAccountId);
+    if (account?.keyType) {
+        ssl.value.keyType = account.keyType;
+    }
+});
 const dnsResolve = ref<Website.DNSResolve[]>([]);
 const em = defineEmits(['close', 'submit']);
 
@@ -338,8 +357,8 @@ const acceptParams = (op: string, websiteSSL?: Website.SSLDTO) => {
     open.value = true;
 };
 
-const getPath = (dir: string) => {
-    ssl.value.dir = dir;
+const getPath = (dirs: string[]) => {
+    ssl.value.dir = dirs.join('\n');
 };
 
 const getAcmeAccounts = async () => {
