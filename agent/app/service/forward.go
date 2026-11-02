@@ -216,7 +216,9 @@ func (s *ForwardingService) Restore(ctx context.Context) error {
 	}
 	backup, err := readFirewallSubsystemBackup("forwarding-"+manager.Name()+".rules", "forwarding")
 	if errors.Is(err, os.ErrNotExist) {
-		return nil
+		// No saved rules yet (e.g. forwarding initialized with 0 rules); still
+		// re-create and bind the chains after a reboot wiped them.
+		backup, err = dto.FirewallSubsystemBackup{}, nil
 	}
 	if err != nil {
 		return err
