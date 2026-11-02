@@ -70,5 +70,9 @@ func coreMigrations() []*gormigrate.Migration {
 		migrations.AddAPIKeys,
 		migrations.AddOperationLogAPIKey,
 		migrations.AddCommunityWafMenu,
+		migrations.UpdateAiMenuOrder,
+		migrations.UpdateAiMenuOrderV2,
+		migrations.AddPanelMCP,
+		migrations.AddAPIKeyDeletedAt,
 	}
 }
