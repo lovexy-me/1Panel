@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"crypto/subtle"
 	"encoding/hex"
-	"errors"
 	"net"
 	"os"
 	"path"
@@ -12,22 +11,33 @@ import (
 	"time"
 
 	"github.com/1Panel-dev/1Panel/core/app/api/v2/helper"
-	"github.com/1Panel-dev/1Panel/core/app/model"
 	"github.com/1Panel-dev/1Panel/core/app/repo"
 	"github.com/1Panel-dev/1Panel/core/global"
 	"github.com/1Panel-dev/1Panel/core/utils/common"
-	contract "github.com/1Panel-dev/1Panel/core/utils/mcp"
-	"github.com/1Panel-dev/1Panel/core/utils/mcpapi"
 	"github.com/1Panel-dev/1Panel/core/utils/security"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func WhiteAllow() gin.HandlerFunc {
+type SourcePolicy struct {
+	Bypass  func(*gin.Context) bool
+	Resolve func(*gin.Context, string) (clientIP string, allowed bool)
+}
+
+func WhiteAllow(policies ...SourcePolicy) gin.HandlerFunc {
+	policies = append([]SourcePolicy(nil), policies...)
 	return func(c *gin.Context) {
-		if mcpapi.IsRequest(c.Request) && c.GetBool("MCP_API_AUTH") {
-			c.Next()
-			return
+		for _, policy := range policies {
+			if policy.Bypass == nil {
+				continue
+			}
+			allowed := policy.Bypass(c)
+			if c.IsAborted() {
+				return
+			}
+			if allowed {
+				c.Next()
+				return
+			}
 		}
 		tokenString := c.GetHeader("X-Panel-Local-Token")
 		remoteIP := common.GetRealClientIP(c)
@@ -43,39 +53,25 @@ func WhiteAllow() gin.HandlerFunc {
 			helper.InternalServer(c, err)
 			return
 		}
-		clientIP, err := resolveMCPWebsiteClientIP(c, trustedProxies)
-		if err != nil {
-			rejectMCPWebsiteSource(c, err)
-			return
-		}
-		if c.Request.URL.Path == "/mcp" {
-			c.Set("MCP_CLIENT_IP", clientIP)
-			var policy model.MCPSetting
-			err := global.DB.Select("access_policy", "allowed_ips").First(&policy, 1).Error
-			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-				c.AbortWithStatusJSON(503, gin.H{"code": "MCP_POLICY_UNAVAILABLE", "message": "MCP source policy is unavailable"})
+		clientIP := ""
+		for _, policy := range policies {
+			if policy.Resolve == nil {
+				continue
+			}
+			resolved, allowed := policy.Resolve(c, trustedProxies)
+			if c.IsAborted() {
 				return
 			}
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				policy.AccessPolicy = "inherit"
+			if resolved != "" {
+				clientIP = resolved
 			}
-			switch policy.AccessPolicy {
-			case "inherit":
-			case "all":
+			if allowed {
 				c.Next()
 				return
-			case "restricted":
-				entries, err := contract.DecodeAllowedIPs(policy.AllowedIPs)
-				if err == nil && len(entries) > 0 && contract.IPAllowed(entries, clientIP) {
-					c.Next()
-					return
-				}
-				c.AbortWithStatusJSON(403, gin.H{"code": "MCP_SOURCE_DENIED", "message": "Source IP is not allowed by MCP policy"})
-				return
-			default:
-				c.AbortWithStatusJSON(403, gin.H{"code": "MCP_SOURCE_DENIED", "message": "MCP source policy is invalid"})
-				return
 			}
+		}
+		if clientIP == "" {
+			clientIP = common.ResolveClientIP(c, trustedProxies)
 		}
 
 		allowIPs, err := settingRepo.GetValueByKey("AllowIPs")
@@ -109,7 +105,7 @@ func isLocalSyncRequest(reqPath, clientIP, token string) bool {
 	}
 
 	switch reqPath {
-	case "/api/v2/core/xpack/sync/ssl", "/api/v2/core/settings/ssl/reload":
+	case "/api/v2/core/xpack/sync/ssl", "/api/v2/core/xpack/sync/php/extensions", "/api/v2/core/settings/ssl/reload":
 		return isValidLocalToken(token)
 	default:
 		return false
